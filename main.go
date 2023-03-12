@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/amoralesc/indexer/email"
@@ -25,6 +26,7 @@ func GetenvOrDefault(key string, defaultValue string) string {
 	return value
 }
 
+var NumParserWorkers, _ = strconv.Atoi(GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
 var BulkUploadSize, _ = strconv.Atoi(GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
 var ZincPort = GetenvOrDefault("ZINC_PORT", "4080")
 var ZincUrl = fmt.Sprintf("http://localhost:%v/api/_bulkv2", ZincPort)
@@ -60,7 +62,7 @@ func UploadEmails(bulk BulkEmails) error {
 	defer resp.Body.Close()
 
 	// Log the response
-	log.Println("Zinc responds with status:", resp.Status)
+	// log.Println("Zinc responds with status:", resp.Status)
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("zinc didn't accept bulk load: %v", string(body))
@@ -69,67 +71,112 @@ func UploadEmails(bulk BulkEmails) error {
 	return nil
 }
 
+func parseEmailFiles(files <-chan string, results chan<- email.Email, errs chan<- error) {
+	for file := range files {
+		emailStruct, err := email.EmailFromFile(file)
+		if err != nil {
+			errs <- fmt.Errorf("failed to parse %v: %v", file, err)
+		} else {
+			results <- emailStruct
+		}
+	}
+}
+
+func uploadEmails(emails <-chan email.Email, errs chan<- error, wg *sync.WaitGroup) {
+	defer wg.Done()
+	bulk := BulkEmails{
+		Index:   "emails",
+		Records: make([]email.Email, BulkUploadSize),
+	}
+	parsed := 0
+	total := 0
+	for emailStruct := range emails {
+		bulk.Records[parsed] = emailStruct
+		parsed++
+		if parsed == BulkUploadSize {
+			log.Printf("Uploading %d emails\n", parsed)
+			err := UploadEmails(bulk)
+			if err != nil {
+				errs <- fmt.Errorf("error uploading emails: %v", err)
+				return
+			}
+			total += parsed
+			parsed = 0
+		}
+	}
+	if parsed > 0 {
+		bulk.Records = bulk.Records[:parsed]
+		err := UploadEmails(bulk)
+		if err != nil {
+			errs <- fmt.Errorf("error uploading emails: %v", err)
+		}
+		total += parsed
+	}
+	log.Printf("Uploaded %d emails\n", total)
+}
+
 func main() {
 	// Command line flags
 	dir := flag.String("d", "", "Directory of the emails")
-	logFailed := flag.Bool("l", false, "Log emails that failed to parse")
+	// logFailed := flag.Bool("l", false, "Log emails that failed to parse")
 	flag.Parse()
 
-	// Only upload emails if a directory was specified
-	// Otherwise, just run the server
-	if *dir != "" {
-		log.Println("Parsing emails to JSON and uploading...")
-		start := time.Now()
-		bulk := BulkEmails{
-			Index:   "emails",
-			Records: make([]email.Email, BulkUploadSize),
-		}
-		parsed := 0
-		total := 0
-		// Walk the directory and convert each valid email file to JSON
-		err := filepath.WalkDir(*dir, func(path string, entry fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if !entry.IsDir() {
-				// Upload the emails in batches of BulkUploadSize
-				emailStruct, err := email.EmailFromFile(path)
-				if err != nil {
-					if *logFailed {
-						log.Printf("failed to parse %v: %v\n", path, err)
-					}
-				} else {
-					bulk.Records[parsed] = emailStruct
-					parsed++
-					if parsed == BulkUploadSize {
-						log.Printf("Uploading %d emails...\n", parsed)
-						err = UploadEmails(bulk)
-						if err != nil {
-							log.Fatal("error uploading emails: ", err)
-						}
-						total += parsed
-						parsed = 0
-					}
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			log.Fatal("error walking directory:", err)
-		}
-		// Upload the remaining emails
-		if parsed > 0 {
-			bulk.Records = bulk.Records[:parsed]
-			log.Printf("Uploading %d emails...\n", parsed)
-			err = UploadEmails(bulk)
-			if err != nil {
-				log.Fatal("error uploading emails: ", err)
-			}
-			total += parsed
-		}
+	// create channels for passing data and errors between goroutines
+	files := make(chan string)
+	emails := make(chan email.Email)
+	errs := make(chan error)
 
-		log.Println("Done uploading emails in", time.Since(start))
-		log.Printf("Uploaded %d emails.\n", total)
+	// spawn uploader goroutine
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go uploadEmails(emails, errs, &wg)
+
+	// spawn file parser goroutines
+	var wg2 sync.WaitGroup
+	for i := 0; i < NumParserWorkers; i++ {
+		wg2.Add(1)
+		go func() {
+			parseEmailFiles(files, emails, errs)
+			wg2.Done()
+		}()
 	}
 
+	// goroutine to log errors from errs channel
+	go func() {
+		for err := range errs {
+			log.Println(err)
+		}
+	}()
+
+	start := time.Now()
+	// walk directory and send file paths to channel
+	err := filepath.WalkDir(*dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() {
+			files <- path
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal("error walking directory:", err)
+	}
+
+	// close file channel to signal end of parsing
+	close(files)
+
+	// wait for all file parser goroutines to finish
+	wg2.Wait()
+
+	// close email channel to signal end of uploading
+	close(emails)
+
+	// wait for uploader goroutine to finish
+	wg.Wait()
+
+	// close error channel to signal end of logging
+	close(errs)
+
+	log.Printf("Finished in %v", time.Since(start))
 }
