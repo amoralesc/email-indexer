@@ -27,6 +27,7 @@ func GetenvOrDefault(key string, defaultValue string) string {
 }
 
 var NumParserWorkers, _ = strconv.Atoi(GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
+var NumUploaderWorkers, _ = strconv.Atoi(GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
 var BulkUploadSize, _ = strconv.Atoi(GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
 var ZincPort = GetenvOrDefault("ZINC_PORT", "4080")
 var ZincUrl = fmt.Sprintf("http://localhost:%v/api/_bulkv2", ZincPort)
@@ -82,8 +83,7 @@ func parseEmailFiles(files <-chan string, results chan<- email.Email, errs chan<
 	}
 }
 
-func uploadEmails(emails <-chan email.Email, errs chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done()
+func uploadEmails(emails <-chan email.Email, errs chan<- error) {
 	bulk := BulkEmails{
 		Index:   "emails",
 		Records: make([]email.Email, BulkUploadSize),
@@ -112,7 +112,7 @@ func uploadEmails(emails <-chan email.Email, errs chan<- error, wg *sync.WaitGro
 		}
 		total += parsed
 	}
-	log.Printf("Uploaded %d emails\n", total)
+	log.Printf("Worker uploaded %d emails\n", total)
 }
 
 func main() {
@@ -128,8 +128,13 @@ func main() {
 
 	// spawn uploader goroutine
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go uploadEmails(emails, errs, &wg)
+	for i := 0; i < NumUploaderWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			uploadEmails(emails, errs)
+			wg.Done()
+		}()
+	}
 
 	// spawn file parser goroutines
 	var wg2 sync.WaitGroup
