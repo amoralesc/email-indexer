@@ -1,90 +1,39 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/amoralesc/indexer/email"
+	"github.com/amoralesc/indexer/utils"
 )
 
-func GetenvOrDefault(key string, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
+var NumParserWorkers, _ = strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
+var NumUploaderWorkers, _ = strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
+var BulkUploadSize, _ = strconv.Atoi(utils.GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
+var ZincUrl = fmt.Sprintf("http://localhost:%v", utils.GetenvOrDefault("ZINC_PORT", "4080"))
+var ZincAdminUser = utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin")
+var ZincAdminPassword = utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123")
 
-var NumParserWorkers, _ = strconv.Atoi(GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
-var NumUploaderWorkers, _ = strconv.Atoi(GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
-var BulkUploadSize, _ = strconv.Atoi(GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
-var ZincPort = GetenvOrDefault("ZINC_PORT", "4080")
-var ZincUrl = fmt.Sprintf("http://localhost:%v/api/_bulkv2", ZincPort)
-var ZincAdminUser = GetenvOrDefault("ZINC_ADMIN_USER", "admin")
-var ZincAdminPassword = GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123")
-
-type BulkEmails struct {
-	Index   string        `json:"index"`
-	Records []email.Email `json:"records"`
-}
-
-func UploadEmails(bulk BulkEmails) error {
-	// Convert the struct to JSON
-	jsonBytes, err := json.Marshal(bulk)
-	if err != nil {
-		return err
-	}
-	jsonReader := bytes.NewReader(jsonBytes)
-
-	// Create the request
-	req, err := http.NewRequest("POST", ZincUrl, jsonReader)
-	if err != nil {
-		return err
-	}
-	req.SetBasicAuth(ZincAdminUser, ZincAdminPassword)
-	req.Header.Set("Content-Type", "application/json")
-
-	// Send the request
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Log the response
-	// log.Println("Zinc responds with status:", resp.Status)
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("zinc didn't accept bulk load: %v", string(body))
-	}
-
-	return nil
-}
-
-func parseEmailFiles(files <-chan string, results chan<- email.Email, errs chan<- error) {
+func parseEmailFiles(files <-chan string, emails chan<- email.Email) {
 	for file := range files {
 		emailStruct, err := email.EmailFromFile(file)
 		if err != nil {
-			errs <- fmt.Errorf("failed to parse %v: %v", file, err)
+			log.Printf("ERROR: failed to parse %v: %v", file, err)
 		} else {
-			results <- emailStruct
+			emails <- emailStruct
 		}
 	}
 }
 
-func uploadEmails(emails <-chan email.Email, errs chan<- error) {
-	bulk := BulkEmails{
+func uploadEmails(emails <-chan email.Email) {
+	bulk := email.BulkEmails{
 		Index:   "emails",
 		Records: make([]email.Email, BulkUploadSize),
 	}
@@ -94,11 +43,10 @@ func uploadEmails(emails <-chan email.Email, errs chan<- error) {
 		bulk.Records[parsed] = emailStruct
 		parsed++
 		if parsed == BulkUploadSize {
-			log.Printf("Uploading %d emails\n", parsed)
-			err := UploadEmails(bulk)
+			log.Printf("TRACE: uploading %d emails\n", parsed)
+			err := email.UploadEmails(bulk, ZincUrl, ZincAdminUser, ZincAdminPassword)
 			if err != nil {
-				errs <- fmt.Errorf("error uploading emails: %v", err)
-				return
+				log.Fatal("FATAL: failed to upload emails: ", err)
 			}
 			total += parsed
 			parsed = 0
@@ -106,54 +54,45 @@ func uploadEmails(emails <-chan email.Email, errs chan<- error) {
 	}
 	if parsed > 0 {
 		bulk.Records = bulk.Records[:parsed]
-		err := UploadEmails(bulk)
+		err := email.UploadEmails(bulk, ZincUrl, ZincAdminUser, ZincAdminPassword)
 		if err != nil {
-			errs <- fmt.Errorf("error uploading emails: %v", err)
+			log.Fatal("FATAL: failed to upload emails: ", err)
 		}
 		total += parsed
 	}
-	log.Printf("Worker uploaded %d emails\n", total)
+	log.Printf("INFO: goroutine uploaded %d emails\n", total)
 }
 
-func main() {
-	// Command line flags
-	dir := flag.String("d", "", "Directory of the emails")
-	// logFailed := flag.Bool("l", false, "Log emails that failed to parse")
-	flag.Parse()
-
-	// create channels for passing data and errors between goroutines
+func parseAndUploadEmails(dir *string) {
+	// create channels for passing data between goroutines
 	files := make(chan string)
 	emails := make(chan email.Email)
-	errs := make(chan error)
 
-	// spawn uploader goroutine
-	var wg sync.WaitGroup
+	// spawn uploader goroutines
+	log.Printf("INFO: spawning %d uploader goroutines", NumUploaderWorkers)
+	var wgUploaders sync.WaitGroup
 	for i := 0; i < NumUploaderWorkers; i++ {
-		wg.Add(1)
+		wgUploaders.Add(1)
 		go func() {
-			uploadEmails(emails, errs)
-			wg.Done()
+			defer wgUploaders.Done()
+			uploadEmails(emails)
 		}()
 	}
 
 	// spawn file parser goroutines
-	var wg2 sync.WaitGroup
+	log.Printf("INFO: spawning %d parser goroutines", NumParserWorkers)
+	var wgParsers sync.WaitGroup
 	for i := 0; i < NumParserWorkers; i++ {
-		wg2.Add(1)
+		wgParsers.Add(1)
 		go func() {
-			parseEmailFiles(files, emails, errs)
-			wg2.Done()
+			defer wgParsers.Done()
+			parseEmailFiles(files, emails)
 		}()
 	}
 
-	// goroutine to log errors from errs channel
-	go func() {
-		for err := range errs {
-			log.Println(err)
-		}
-	}()
-
 	start := time.Now()
+	log.Printf("INFO: starting to upload emails")
+
 	// walk directory and send file paths to channel
 	err := filepath.WalkDir(*dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -165,23 +104,31 @@ func main() {
 		return nil
 	})
 	if err != nil {
-		log.Fatal("error walking directory:", err)
+		log.Fatal("FATAl: failed to walk directory: ", err)
 	}
 
-	// close file channel to signal end of parsing
+	// close files channel to signal end of parsing
 	close(files)
-
-	// wait for all file parser goroutines to finish
-	wg2.Wait()
-
-	// close email channel to signal end of uploading
+	wgParsers.Wait()
+	// close emails channel to signal end of uploading
 	close(emails)
+	wgUploaders.Wait()
 
-	// wait for uploader goroutine to finish
-	wg.Wait()
+	log.Printf("INFO: finished uploading in %v\n", time.Since(start))
+}
 
-	// close error channel to signal end of logging
-	close(errs)
+func main() {
+	// command line flags
+	dir := flag.String("d", "", "Directory of the emails. If none is provided, the server will use already indexed emails.")
+	flag.Parse()
 
-	log.Printf("Finished in %v", time.Since(start))
+	if *dir != "" {
+		err := email.DeleteIndex(ZincUrl, ZincAdminUser, ZincAdminPassword)
+		if err != nil {
+			log.Println("WARNING: failed to delete emails index: ", err)
+		}
+		parseAndUploadEmails(dir)
+	}
+	// start server
+	log.Fatal("FATAL: server not implemented yet")
 }
