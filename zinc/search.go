@@ -12,10 +12,8 @@ import (
 )
 
 const (
-	defaultQuerySize = 100
-	defaultSortField = "date"
-	searchPath       = "/es/emails/_search"
-	aggPath          = "/api/emails/_search"
+	searchPath = "/es/emails/_search"
+	aggPath    = "/api/emails/_search"
 )
 
 type QueryResponse struct {
@@ -182,15 +180,13 @@ func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse,
 				]
 			}
 		},
-		"sort": [ %v ],
-		"from": %d,
-		"size": %d
+		%v
 	}
 	`
-	if settings.Size == 0 {
-		settings.Size = defaultQuerySize
+	if settings.Pagination.Size == 0 {
+		settings.Pagination.Size = defaultQuerySize
 	}
-	query := fmt.Sprintf(queryTemplate, parseSortQuerySettings(settings.Sort), settings.Start, settings.Size)
+	query := fmt.Sprintf(queryTemplate, parseQuerySettings(settings))
 
 	return sendQuery(query, serverAuth)
 }
@@ -233,13 +229,11 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 				"filter": [ %v ]
 			}
 		},
-		"sort": [ %v ],
-		"from": %d,
-		"size": %d
+		%v
 	}
 	`
-	if settings.Size == 0 {
-		settings.Size = defaultQuerySize
+	if settings.Pagination.Size == 0 {
+		settings.Pagination.Size = defaultQuerySize
 	}
 	// parse the must parameters
 	var mustParameters []string
@@ -270,7 +264,7 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 	filterParameters := parseDateRangeParameter(searchQuery.Date)
 
 	// create the query string
-	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, parseSortQuerySettings(settings.Sort), settings.Start, settings.Size)
+	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, parseQuerySettings(settings))
 
 	return sendQuery(query, serverAuth)
 }

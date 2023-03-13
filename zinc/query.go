@@ -6,16 +6,27 @@ import (
 	"time"
 )
 
-type SortQuerySettings struct {
-	Field   string // the field to sort by
+const (
+	defaultQuerySize = 100
+	defaultSortField = "date"
+)
+
+// QuerySortSettings sets the sorting parameters for the query. To be used as a slice.
+type QuerySortSettings struct {
+	Field   string // the field to sort by. Default: "date"
 	SortAsc bool   // if true, the elements will be sorted ascending. Default: false
 }
 
-// QuerySettings sets basic parameters for the query (pagination, sorting).
+// QueryPaginationSettings sets the pagination parameters for the query.
+type QueryPaginationSettings struct {
+	Start int // the offset to start from (pagination). Default: 0
+	Size  int // the number of elements to return (pagination). Default: 100
+}
+
+// QuerySettings sets the parameters for the query.
 type QuerySettings struct {
-	Start int                 // the offset to start from (pagination). Default: 0
-	Size  int                 // the number of elements to return (pagination). Default: 100
-	Sort  []SortQuerySettings // the fields to sort by in order of priority. Default: date descending
+	Sort       []QuerySortSettings     // the sorting parameters. Default: [{Field: "date", SortAsc: false}]
+	Pagination QueryPaginationSettings // the pagination parameters. Default: {Start: 0, Size: 100}
 }
 
 // DateRange represents a range of dates (from, to) to filter the query.
@@ -38,24 +49,34 @@ type SearchQuery struct {
 	Date            DateRange `json:"date"`             // the date range to filter the query
 }
 
-// parseSortQuerySettings parses the sort settings to a string.
-func parseSortQuerySettings(sort []SortQuerySettings) string {
-	if sort == nil {
-		return `"-date"`
-	}
-	var sortStr string
+// parseQuerySortSettings parses the sort settings to a string.
+func parseQuerySortSettings(sort []QuerySortSettings) string {
+	sortStr := ``
 	for _, s := range sort {
 		if sortStr != `` {
 			sortStr += `, `
 		}
 		if s.SortAsc {
-			sortStr += `+`
+			sortStr += `"+`
 		} else {
-			sortStr += `-`
+			sortStr += `"-`
 		}
-		sortStr += `"` + s.Field + `"`
+		sortStr += s.Field + `"`
 	}
 	return sortStr
+}
+
+func parseQuerySettings(settings QuerySettings) string {
+	if settings.Sort == nil {
+		settings.Sort = []QuerySortSettings{{Field: defaultSortField}}
+	}
+	if settings.Pagination.Size == 0 {
+		settings.Pagination.Size = defaultQuerySize
+	}
+	return fmt.Sprintf(`"sort": [ %v ], "from": %d, "size": %d`,
+		parseQuerySortSettings(settings.Sort),
+		settings.Pagination.Start,
+		settings.Pagination.Size)
 }
 
 func parseSearchParameter(searchType string, field string, value string) string {

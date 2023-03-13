@@ -54,7 +54,9 @@ func main() {
 		SubjectIncludes: "Match.com",
 	}
 	settings := zinc.QuerySettings{
-		Size: 5000,
+		Pagination: zinc.QueryPaginationSettings{
+			Size: 500,
+		},
 	}
 	log.Println("INFO: searching for emails")
 
