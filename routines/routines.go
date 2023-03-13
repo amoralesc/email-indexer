@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/amoralesc/indexer/email"
+	"github.com/amoralesc/indexer/zinc"
 )
 
 func parseEmailFiles(files <-chan string, emails chan<- email.Email) {
@@ -20,8 +21,8 @@ func parseEmailFiles(files <-chan string, emails chan<- email.Email) {
 	}
 }
 
-func uploadEmails(emails <-chan email.Email, bulkUploadSize int, zincUrl string, zincAdminUser string, zincAdminPassword string) {
-	bulk := email.BulkEmails{
+func uploadEmails(emails <-chan email.Email, bulkUploadSize int, server zinc.ServerAuth) {
+	bulk := zinc.BulkEmails{
 		Index:   "emails",
 		Records: make([]email.Email, bulkUploadSize),
 	}
@@ -33,7 +34,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, zincUrl string,
 		parsed++
 		if parsed == bulkUploadSize {
 			log.Printf("TRACE: uploading %d emails\n", parsed)
-			err := email.UploadEmails(bulk, zincUrl, zincAdminUser, zincAdminPassword)
+			err := zinc.UploadEmails(bulk, server)
 			if err != nil {
 				log.Fatal("FATAL: failed to upload emails: ", err)
 			}
@@ -43,7 +44,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, zincUrl string,
 	}
 	if parsed > 0 {
 		bulk.Records = bulk.Records[:parsed]
-		err := email.UploadEmails(bulk, zincUrl, zincAdminUser, zincAdminPassword)
+		err := zinc.UploadEmails(bulk, server)
 		if err != nil {
 			log.Fatal("FATAL: failed to upload emails: ", err)
 		}
@@ -52,7 +53,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, zincUrl string,
 	log.Printf("INFO: goroutine uploaded %d emails, exitting\n", total)
 }
 
-func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, zincUrl string, zincAdminUser string, zincAdminPassword string) {
+func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, server zinc.ServerAuth) {
 	// create channels for passing data between goroutines
 	files := make(chan string)
 	emails := make(chan email.Email)
@@ -64,7 +65,7 @@ func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers 
 		wgUploaders.Add(1)
 		go func() {
 			defer wgUploaders.Done()
-			uploadEmails(emails, bulkUploadSize, zincUrl, zincAdminUser, zincAdminPassword)
+			uploadEmails(emails, bulkUploadSize, server)
 		}()
 	}
 

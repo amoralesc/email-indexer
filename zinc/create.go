@@ -1,4 +1,4 @@
-package email
+package zinc
 
 import (
 	"bytes"
@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/amoralesc/indexer/email"
 )
 
 type BulkEmails struct {
-	Index   string  `json:"index"`
-	Records []Email `json:"records"`
+	Index   string        `json:"index"`
+	Records []email.Email `json:"records"`
 }
 
 const (
@@ -93,13 +95,13 @@ const emailsIndexMapping = `
 	}
 }`
 
-func CreateIndex(zincUrl string, zincAdminUser string, zincAdminPassword string) error {
+func CreateIndex(server ServerAuth) error {
 	// create the post request
-	req, err := http.NewRequest("POST", zincUrl+indexPath, bytes.NewReader([]byte(emailsIndexMapping)))
+	req, err := http.NewRequest("POST", server.Url+indexPath, bytes.NewReader([]byte(emailsIndexMapping)))
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(zincAdminUser, zincAdminPassword)
+	req.SetBasicAuth(server.User, server.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	// send the request
@@ -117,7 +119,7 @@ func CreateIndex(zincUrl string, zincAdminUser string, zincAdminPassword string)
 	return nil
 }
 
-func UploadEmails(bulk BulkEmails, zincUrl string, zincAdminUser string, zincAdminPassword string) error {
+func UploadEmails(bulk BulkEmails, server ServerAuth) error {
 	// convert the struct to JSON
 	jsonBytes, err := json.Marshal(bulk)
 	if err != nil {
@@ -125,11 +127,11 @@ func UploadEmails(bulk BulkEmails, zincUrl string, zincAdminUser string, zincAdm
 	}
 
 	// create the post request
-	req, err := http.NewRequest("POST", zincUrl+uploadPath, bytes.NewReader(jsonBytes))
+	req, err := http.NewRequest("POST", server.Url+uploadPath, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(zincAdminUser, zincAdminPassword)
+	req.SetBasicAuth(server.User, server.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	// send the request
@@ -148,13 +150,13 @@ func UploadEmails(bulk BulkEmails, zincUrl string, zincAdminUser string, zincAdm
 	return nil
 }
 
-func DeleteIndex(indexName string, zincUrl string, zincAdminUser string, zincAdminPassword string) error {
+func DeleteIndex(indexName string, server ServerAuth) error {
 	// create the delete request
-	req, err := http.NewRequest("DELETE", zincUrl+indexPath+indexName, nil)
+	req, err := http.NewRequest("DELETE", server.Url+indexPath+indexName, nil)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(zincAdminUser, zincAdminPassword)
+	req.SetBasicAuth(server.User, server.Password)
 
 	// send the request
 	resp, err := http.DefaultClient.Do(req)

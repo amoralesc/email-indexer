@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/amoralesc/indexer/email"
 	"github.com/amoralesc/indexer/routines"
 	"github.com/amoralesc/indexer/utils"
+	"github.com/amoralesc/indexer/zinc"
 )
 
 var NumUploaderWorkers, _ = strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
@@ -24,23 +24,29 @@ func main() {
 	dir := flag.String("d", "", "Directory of the emails. If none is provided, the server will use already indexed emails.")
 	flag.Parse()
 
+	zincServer := zinc.ServerAuth{
+		Url:      ZincUrl,
+		User:     ZincAdminUser,
+		Password: ZincAdminPassword,
+	}
+
 	// only parse and upload emails if a directory is provided
 	if *dir != "" {
 		log.Printf("INFO: deleting emails index (if exists)")
-		err := email.DeleteIndex("emails", ZincUrl, ZincAdminUser, ZincAdminPassword)
+		err := zinc.DeleteIndex("emails", zincServer)
 		if err != nil {
 			log.Println("WARNING: failed to delete emails index: ", err)
 		}
 
 		log.Printf("INFO: creating emails index")
-		err = email.CreateIndex(ZincUrl, ZincAdminUser, ZincAdminPassword)
+		err = zinc.CreateIndex(zincServer)
 		if err != nil {
 			log.Fatal("FATAL: failed to create emails index: ", err)
 		}
 
 		log.Println("INFO: starting to parse and upload emails")
 		start := time.Now()
-		routines.ParseAndUploadEmails(dir, NumUploaderWorkers, NumParserWorkers, BulkUploadSize, ZincUrl, ZincAdminUser, ZincAdminPassword)
+		routines.ParseAndUploadEmails(dir, NumUploaderWorkers, NumParserWorkers, BulkUploadSize, zincServer)
 		log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 	}
 	// start server
