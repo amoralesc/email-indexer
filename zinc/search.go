@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/amoralesc/indexer/email"
 )
@@ -19,64 +18,21 @@ const (
 	aggPath          = "/api/emails/_search"
 )
 
-type SortQuerySettings struct {
-	Field   string // the field to sort by
-	SortAsc bool   // if true, the elements will be sorted ascending. Default: false
+type QueryResponse struct {
+	Total  int           `json:"total"`
+	Took   int           `json:"took"`
+	Emails []email.Email `json:"emails"`
 }
 
-// QuerySettings sets basic parameters for the query (pagination, sorting).
-type QuerySettings struct {
-	Start int                 // the offset to start from (pagination). Default: 0
-	Size  int                 // the number of elements to return (pagination). Default: 100
-	Sort  []SortQuerySettings // the fields to sort by in order of priority. Default: date descending
-}
-
-// DateRange represents a range of dates (from, to) to filter the query.
-type DateRange struct {
-	From time.Time `json:"from"` // the start date. Default: 0
-	To   time.Time `json:"to"`   // the end date. Default: max time
-}
-
-// SearchQuery represents a query to search for emails.
-// The query will only return emails that match all the fields.
-// If a field is empty, it will be ignored.
-type SearchQuery struct {
-	From            string    `json:"from"`             // from address (exact match)
-	To              []string  `json:"to"`               // to addresses (exact match to all)
-	Cc              []string  `json:"cc"`               // cc addresses (exact match to all)
-	Bcc             []string  `json:"bcc"`              // bcc addresses (exact match to all)
-	SubjectIncludes string    `json:"subject_includes"` // subject (has text)
-	BodyIncludes    string    `json:"body_includes"`    // body includes (has text)
-	BodyExcludes    string    `json:"body_excludes"`    // body excludes (does not have text)
-	Date            DateRange `json:"date"`             // the date range to filter the query
-}
-
-// parseSortQuerySettings parses the sort settings to a string.
-func parseSortQuerySettings(sort []SortQuerySettings) string {
-	if sort == nil {
-		return `"-date"`
-	}
-	var sortStr string
-	for _, s := range sort {
-		if sortStr != `` {
-			sortStr += `, `
-		}
-		if s.SortAsc {
-			sortStr += `+`
-		} else {
-			sortStr += `-`
-		}
-		sortStr += `"` + s.Field + `"`
-	}
-	return sortStr
-}
-
-// parseEmails parses the query response from the zinc server
-// and returns the emails.
-func parseEmails(body []byte) ([]email.Email, error) {
+// parseQueryResponse parses the query response from the zinc server.
+func parseQueryResponse(body []byte) (QueryResponse, error) {
 	// parse the response
 	var resp struct {
+		Took int `json:"took"`
 		Hits struct {
+			Total struct {
+				Value int `json:"value"`
+			} `json:"total"`
 			Hits []struct {
 				Source email.Email `json:"_source"`
 			} `json:"hits"`
@@ -84,78 +40,54 @@ func parseEmails(body []byte) ([]email.Email, error) {
 	}
 
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return nil, err
+		return QueryResponse{}, err
 	}
 
 	// extract the emails
-	return func() []email.Email {
+	emails := func() []email.Email {
 		emails := make([]email.Email, len(resp.Hits.Hits))
 		for i, hit := range resp.Hits.Hits {
 			emails[i] = hit.Source
 		}
 		return emails
-	}(), nil
+	}()
+
+	return QueryResponse{
+		Total:  resp.Hits.Total.Value,
+		Took:   resp.Took,
+		Emails: emails,
+	}, nil
 }
 
-func queryEmails(query string, serverAuth ServerAuth) ([]email.Email, error) {
+// sendQuery sends a query to the zinc server. It returns the emails that match the query.
+func sendQuery(query string, serverAuth ServerAuth) (QueryResponse, error) {
 	// create the request
 	req, err := http.NewRequest("POST", serverAuth.Url+searchPath, bytes.NewBuffer([]byte(query)))
 	if err != nil {
-		return nil, err
+		return QueryResponse{}, err
 	}
 	req.SetBasicAuth(serverAuth.User, serverAuth.Password)
 
 	// send the request
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return QueryResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	// check the response
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("zinc server responded with code %v: %v", resp.StatusCode, string(body))
+		return QueryResponse{}, fmt.Errorf("zinc server responded with code %v: %v", resp.StatusCode, string(body))
 	}
 
 	// parse the response
-	emails, err := parseEmails(body)
+	queryResponse, err := parseQueryResponse(body)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing response: %v", err)
+		return QueryResponse{}, fmt.Errorf("error parsing response: %v", err)
 	}
 
-	return emails, nil
-}
-
-func parseSearchParameter(searchType string, field string, value string) string {
-	return fmt.Sprintf(`{ "%v": { "%v": "%v" } }`, searchType, field, value)
-}
-
-func parseExactMatchParameter(field string, value string) string {
-	return parseSearchParameter("term", field, value)
-}
-
-func parseMultipleExactMatchParameter(field string, values []string) string {
-	parameters := make([]string, len(values))
-	for i, value := range values {
-		parameters[i] = parseExactMatchParameter(field, value)
-	}
-	return strings.Join(parameters, ", ")
-}
-
-func parseMatchTextParameter(field string, value string) string {
-	return parseSearchParameter("match", field, value)
-}
-
-func parseDateRangeParameter(date DateRange) string {
-	const rangeTemplate = `{ "range": { "date": { "format": "%v", %v } } }`
-
-	fromTo := fmt.Sprintf(`"gte": "%v"`, date.From.Format(time.RFC3339))
-	if !date.To.IsZero() {
-		fromTo += fmt.Sprintf(`, "lte": "%v"`, date.To.Format(time.RFC3339))
-	}
-
-	return fmt.Sprintf(rangeTemplate, time.RFC3339, fromTo)
+	return queryResponse, nil
 }
 
 // GetAllEmailAddresses returns all email addresses from the zinc server.
@@ -239,7 +171,7 @@ func GetAllEmailAddresses(serverAuth ServerAuth) ([]string, error) {
 }
 
 // GetAllEmails returns all emails from the zinc server (paginated).
-func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) ([]email.Email, error) {
+func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
 	// create the query
 	const queryTemplate = `
 	{
@@ -260,11 +192,11 @@ func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) ([]email.Email,
 	}
 	query := fmt.Sprintf(queryTemplate, parseSortQuerySettings(settings.Sort), settings.Start, settings.Size)
 
-	return queryEmails(query, serverAuth)
+	return sendQuery(query, serverAuth)
 }
 
 // GetEmailByMessageId returns the email that has the given message id.
-func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (email.Email, error) {
+func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (QueryResponse, error) {
 	// create the query
 	const queryTemplate = `
 	{
@@ -277,20 +209,20 @@ func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (email.Email, 
 	`
 	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
 
-	emails, err := queryEmails(query, serverAuth)
+	resp, err := sendQuery(query, serverAuth)
 	if err != nil {
-		return email.Email{}, err
+		return QueryResponse{}, err
 	}
 
-	if len(emails) == 0 {
-		return email.Email{}, fmt.Errorf("email not found")
+	if len(resp.Emails) == 0 {
+		return QueryResponse{}, fmt.Errorf("no email found with message id %v", messageId)
 	}
 
-	return emails[0], nil
+	return resp, nil
 }
 
 // GetEmailsBySearchQuery returns all emails that match the given search query (paginated).
-func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, serverAuth ServerAuth) ([]email.Email, error) {
+func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
 	// create the query
 	const queryTemplate = `
 	{
@@ -340,5 +272,5 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 	// create the query string
 	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, parseSortQuerySettings(settings.Sort), settings.Start, settings.Size)
 
-	return queryEmails(query, serverAuth)
+	return sendQuery(query, serverAuth)
 }

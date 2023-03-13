@@ -58,10 +58,10 @@ func main() {
 	}
 	log.Println("INFO: searching for emails")
 
-	emails, err := zinc.GetEmailsBySearchQuery(query, settings, zincServerAuth)
+	resp, err := zinc.GetEmailsBySearchQuery(query, settings, zincServerAuth)
 	if err != nil {
 		log.Fatal("FATAL: failed to search emails: ", err)
 	}
-	log.Printf("INFO: found %v emails\n", len(emails))
+	log.Printf("INFO: found %v emails\n", len(resp.Emails))
 
 }
