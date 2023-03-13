@@ -50,12 +50,18 @@ func main() {
 		log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 	}
 
-	emails, err := zinc.GetAllEmails(zinc.QuerySettings{Size: 1}, zincServerAuth)
+	query := zinc.SearchQuery{
+		SubjectIncludes: "Match.com",
+	}
+	settings := zinc.QuerySettings{
+		Size: 5000,
+	}
+	log.Println("INFO: searching for emails")
+
+	emails, err := zinc.GetEmailsBySearchQuery(query, settings, zincServerAuth)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("FATAL: failed to search emails: ", err)
 	}
-	log.Printf("INFO: found %v emails, these are\n", len(emails))
-	for _, email := range emails {
-		log.Printf("INFO: %v\n", email)
-	}
+	log.Printf("INFO: found %v emails\n", len(emails))
+
 }

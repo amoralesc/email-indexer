@@ -52,16 +52,16 @@ func CreateIndex(serverAuth ServerAuth) error {
 					"type": "keyword",
 					"index": true,
 					"store": true,
-					"sortable": false,
-					"aggregatable": false,
+					"sortable": true,
+					"aggregatable": true,
 					"highlightable": false
 				},
 				"to": {
 					"type": "keyword",
 					"index": true,
 					"store": true,
-					"sortable": false,
-					"aggregatable": false,
+					"sortable": true,
+					"aggregatable": true,
 					"highlightable": false
 				},
 				"subject": {
@@ -76,16 +76,16 @@ func CreateIndex(serverAuth ServerAuth) error {
 					"type": "keyword",
 					"index": true,
 					"store": true,
-					"sortable": false,
-					"aggregatable": false,
+					"sortable": true,
+					"aggregatable": true,
 					"highlightable": false
 				},
 				"bcc": {
 					"type": "keyword",
 					"index": true,
 					"store": true,
-					"sortable": false,
-					"aggregatable": false,
+					"sortable": true,
+					"aggregatable": true,
 					"highlightable": false
 				},
 				"body": {
@@ -113,6 +113,7 @@ func CreateIndex(serverAuth ServerAuth) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	// check the response
 	body, _ := io.ReadAll(resp.Body)
@@ -169,6 +170,7 @@ func DeleteIndex(serverAuth ServerAuth) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	// check the response
 	body, _ := io.ReadAll(resp.Body)

@@ -10,7 +10,7 @@ import (
 // Email represents an email message that can
 // be JSON encoded
 type Email struct {
-	MessageID string    `json:"message-id"`
+	MessageID string    `json:"message_id"`
 	Date      time.Time `json:"date"`
 	From      string    `json:"from"`
 	To        []string  `json:"to"`
