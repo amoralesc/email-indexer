@@ -24,7 +24,7 @@ func main() {
 	dir := flag.String("d", "", "Directory of the emails. If none is provided, the server will use already indexed emails.")
 	flag.Parse()
 
-	zincServer := zinc.ServerAuth{
+	zincServerAuth := zinc.ServerAuth{
 		Url:      ZincUrl,
 		User:     ZincAdminUser,
 		Password: ZincAdminPassword,
@@ -33,22 +33,29 @@ func main() {
 	// only parse and upload emails if a directory is provided
 	if *dir != "" {
 		log.Printf("INFO: deleting emails index (if exists)")
-		err := zinc.DeleteIndex("emails", zincServer)
+		err := zinc.DeleteIndex(zincServerAuth)
 		if err != nil {
 			log.Println("WARNING: failed to delete emails index: ", err)
 		}
 
 		log.Printf("INFO: creating emails index")
-		err = zinc.CreateIndex(zincServer)
+		err = zinc.CreateIndex(zincServerAuth)
 		if err != nil {
 			log.Fatal("FATAL: failed to create emails index: ", err)
 		}
 
 		log.Println("INFO: starting to parse and upload emails")
 		start := time.Now()
-		routines.ParseAndUploadEmails(dir, NumUploaderWorkers, NumParserWorkers, BulkUploadSize, zincServer)
+		routines.ParseAndUploadEmails(dir, NumUploaderWorkers, NumParserWorkers, BulkUploadSize, zincServerAuth)
 		log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 	}
-	// start server
-	log.Fatal("FATAL: server not implemented yet")
+
+	emails, err := zinc.GetAllEmails(zinc.QuerySettings{Size: 1}, zincServerAuth)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("INFO: found %v emails, these are\n", len(emails))
+	for _, email := range emails {
+		log.Printf("INFO: %v\n", email)
+	}
 }

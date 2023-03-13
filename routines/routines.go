@@ -21,7 +21,7 @@ func parseEmailFiles(files <-chan string, emails chan<- email.Email) {
 	}
 }
 
-func uploadEmails(emails <-chan email.Email, bulkUploadSize int, server zinc.ServerAuth) {
+func uploadEmails(emails <-chan email.Email, bulkUploadSize int, serverAuth zinc.ServerAuth) {
 	bulk := zinc.BulkEmails{
 		Index:   "emails",
 		Records: make([]email.Email, bulkUploadSize),
@@ -34,7 +34,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, server zinc.Ser
 		parsed++
 		if parsed == bulkUploadSize {
 			log.Printf("TRACE: uploading %d emails\n", parsed)
-			err := zinc.UploadEmails(bulk, server)
+			err := zinc.UploadEmails(bulk, serverAuth)
 			if err != nil {
 				log.Fatal("FATAL: failed to upload emails: ", err)
 			}
@@ -44,7 +44,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, server zinc.Ser
 	}
 	if parsed > 0 {
 		bulk.Records = bulk.Records[:parsed]
-		err := zinc.UploadEmails(bulk, server)
+		err := zinc.UploadEmails(bulk, serverAuth)
 		if err != nil {
 			log.Fatal("FATAL: failed to upload emails: ", err)
 		}
@@ -53,7 +53,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, server zinc.Ser
 	log.Printf("INFO: goroutine uploaded %d emails, exitting\n", total)
 }
 
-func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, server zinc.ServerAuth) {
+func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, serverAuth zinc.ServerAuth) {
 	// create channels for passing data between goroutines
 	files := make(chan string)
 	emails := make(chan email.Email)
@@ -65,7 +65,7 @@ func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers 
 		wgUploaders.Add(1)
 		go func() {
 			defer wgUploaders.Done()
-			uploadEmails(emails, bulkUploadSize, server)
+			uploadEmails(emails, bulkUploadSize, serverAuth)
 		}()
 	}
 
