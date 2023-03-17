@@ -2,20 +2,16 @@ package zinc
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const (
-	defaultQuerySize = 100
-	defaultSortField = "date"
+	defaultQueryStart = 0
+	defaultQuerySize  = 100
+	defaultSortField  = "-date"
 )
-
-// QuerySortSettings sets the sorting parameters for the query. To be used as a slice.
-type QuerySortSettings struct {
-	Field   string // the field to sort by. Default: "date"
-	SortAsc bool   // if true, the elements will be sorted ascending. Default: false
-}
 
 // QueryPaginationSettings sets the pagination parameters for the query.
 type QueryPaginationSettings struct {
@@ -25,7 +21,7 @@ type QueryPaginationSettings struct {
 
 // QuerySettings sets the parameters for the query.
 type QuerySettings struct {
-	Sort       []*QuerySortSettings     // the sorting parameters. Default: [{Field: "date", SortAsc: false}]
+	Sort       string                   // the sorting parameters. Default: "-date"
 	Pagination *QueryPaginationSettings // the pagination parameters. Default: {Start: 0, Size: 100}
 }
 
@@ -49,33 +45,45 @@ type SearchQuery struct {
 	Date            DateRange `json:"date"`             // the date range to filter the query
 }
 
-// parseQuerySortSettings parses the sort settings to a string.
-func parseQuerySortSettings(sortSettings []*QuerySortSettings) string {
-	sortStr := ``
-	for _, s := range sortSettings {
-		if sortStr != `` {
-			sortStr += `, `
-		}
-		if s.SortAsc {
-			sortStr += `"+`
-		} else {
-			sortStr += `"-`
-		}
-		sortStr += s.Field + `"`
+// ValidateSortField validates a sort field with the format: (+|-)(from|to|cc|bcc|date)
+func ValidateSortField(sortField string) error {
+	matches := regexp.MustCompile(`^(\+|-)(from|to|cc|bcc|date)$`).MatchString(sortField)
+	if !matches {
+		return fmt.Errorf("invalid sort field: %v", sortField)
 	}
-	return sortStr
+	return nil
+}
+
+// NewQuerySettings creates new QuerySettings.
+func NewQuerySettings(sortBy string, page, pageSize int) (*QuerySettings, error) {
+	sortFields := strings.Split(sortBy, ",")
+	for _, s := range sortFields {
+		err := ValidateSortField(s)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if sortBy == "" {
+		sortBy = defaultSortField
+	}
+	if page < 0 {
+		return nil, fmt.Errorf("page should be equal or greater than 0: %v", page)
+	}
+	if pageSize < 0 {
+		return nil, fmt.Errorf("pageSize should be equal or greater than 0: %v", pageSize)
+	}
+	if pageSize == 0 {
+		pageSize = defaultQuerySize
+	}
+
+	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: page, Size: pageSize}}, nil
 }
 
 // parseQuerySettings parses the query settings to a string.
-func (settings *QuerySettings) parseQuerySettings() string {
-	if settings.Sort == nil {
-		settings.Sort = []*QuerySortSettings{{Field: defaultSortField, SortAsc: false}}
-	}
-	if settings.Pagination.Size == 0 {
-		settings.Pagination.Size = defaultQuerySize
-	}
+func (settings *QuerySettings) ParseQuerySettings() string {
 	return fmt.Sprintf(`"sort": [ %v ], "from": %d, "size": %d`,
-		parseQuerySortSettings(settings.Sort),
+		settings.Sort,
 		settings.Pagination.Start,
 		settings.Pagination.Size)
 }

@@ -92,7 +92,7 @@ func (service *ZincService) sendQuery(query string) (*QueryResponse, error) {
 
 // GetAllEmailAddresses returns all email addresses from the zinc server.
 // This is a resource-intensive operation, so it should be used with caution.
-func (service *ZincService) GetAllEmailAddresses() ([]string, error) {
+func (service *ZincService) GetAllEmailAddresses() ([]*string, error) {
 	// create the query template
 	const query = `
 	{
@@ -160,10 +160,10 @@ func (service *ZincService) GetAllEmailAddresses() ([]string, error) {
 	}
 
 	// convert the map to a slice
-	addrs := make([]string, len(addresses))
+	addrs := make([]*string, len(addresses))
 	i := 0
 	for addr := range addresses {
-		addrs[i] = addr
+		addrs[i] = &addr
 		i++
 	}
 
@@ -185,7 +185,7 @@ func (service *ZincService) GetAllEmails(settings *QuerySettings) (*QueryRespons
 		%v
 	}
 	`
-	query := fmt.Sprintf(queryTemplate, settings.parseQuerySettings())
+	query := fmt.Sprintf(queryTemplate, settings.ParseQuerySettings())
 
 	return service.sendQuery(query)
 }
@@ -251,15 +251,15 @@ func (service *ZincService) GetEmailsBySearchQuery(searchQuery *SearchQuery, set
 	// parse the filter parameters
 	filterParameters := parseDateRangeParameter(searchQuery.Date)
 
-	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, settings.parseQuerySettings())
+	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, settings.ParseQuerySettings())
 
 	return service.sendQuery(query)
 }
 
-// GetEmailByQueryString returns all emails that match the given query string (paginated).
+// GetEmailsByQueryString returns all emails that match the given query string (paginated).
 // A query string is a string composed of query language syntax. For example:
 // "query string +other word +content:test"
-func (service *ZincService) GetEmailByQueryString(queryString string, settings *QuerySettings) (*QueryResponse, error) {
+func (service *ZincService) GetEmailsByQueryString(queryString string, settings *QuerySettings) (*QueryResponse, error) {
 	// create the query template
 	const queryTemplate = `
 	{
@@ -272,7 +272,7 @@ func (service *ZincService) GetEmailByQueryString(queryString string, settings *
 	}
 	`
 
-	query := fmt.Sprintf(queryTemplate, queryString, settings.parseQuerySettings())
+	query := fmt.Sprintf(queryTemplate, queryString, settings.ParseQuerySettings())
 
 	return service.sendQuery(query)
 }
