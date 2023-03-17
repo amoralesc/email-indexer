@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -29,11 +30,13 @@ func paginateAndSort(next http.Handler) http.Handler {
 		// cast page and page size to int
 		pageInt, err := strconv.Atoi(page)
 		if err != nil {
+			log.Printf("ERROR: %v\n", err)
 			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("page should be an integer")))
 			return
 		}
 		pageSizeInt, err := strconv.Atoi(pageSize)
 		if err != nil {
+			log.Printf("ERROR: %v\n", err)
 			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("pageSize should be an integer")))
 			return
 		}
@@ -41,6 +44,7 @@ func paginateAndSort(next http.Handler) http.Handler {
 		// create the query settings
 		querySettings, err := zinc.NewQuerySettings(sortBy, pageInt, pageSizeInt)
 		if err != nil {
+			log.Printf("ERROR: %v\n", err)
 			render.Render(w, r, ErrInvalidRequest(err))
 			return
 		}

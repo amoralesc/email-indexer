@@ -92,12 +92,12 @@ func (service *ZincService) sendQuery(query string, searchPath string) (*QueryRe
 
 // GetAllEmailAddresses returns all email addresses from the zinc server.
 // This is a resource-intensive operation, so it should be used with caution.
-func (service *ZincService) GetAllEmailAddresses() ([]*string, error) {
+func (service *ZincService) GetAllEmailAddresses() ([]string, error) {
 	// create the query template
-	const query = `
+	const queryTemplate = `
 	{
 		"search_type": "matchall",
-		"max_results": 0,emailObj
+		"max_results": 0,
 		"aggs": {
 			"results": {
 				"agg_type": "term",
@@ -111,7 +111,7 @@ func (service *ZincService) GetAllEmailAddresses() ([]*string, error) {
 	// the request is done for each field: from, to, cc, bcc
 	var addresses map[string]struct{} // using a map to avoid duplicates
 	for _, field := range []string{"from", "to", "cc", "bcc"} {
-		queryStr := fmt.Sprintf(query, field, size)
+		queryStr := fmt.Sprintf(queryTemplate, field, size)
 
 		// create the request
 		req, err := http.NewRequest("POST", service.Url+apiSearchPath, bytes.NewBuffer([]byte(queryStr)))
@@ -160,10 +160,10 @@ func (service *ZincService) GetAllEmailAddresses() ([]*string, error) {
 	}
 
 	// convert the map to a slice
-	addrs := make([]*string, len(addresses))
+	addrs := make([]string, len(addresses))
 	i := 0
 	for addr := range addresses {
-		addrs[i] = &addr
+		addrs[i] = addr
 		i++
 	}
 
@@ -265,11 +265,11 @@ func (service *ZincService) GetEmailsByQueryString(queryString string, settings 
 	{
 		"query": {
 			"bool": {
-				"must": {
-					[ "query_string": { "query": "%v" } ]
-				}
+				"must": [
+					{ "query_string": { "query": "%v" } }
+				]
 			}
-		}
+		},
 		%v
 	}
 	`

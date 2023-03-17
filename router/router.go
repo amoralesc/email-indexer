@@ -44,7 +44,6 @@ func ListEmails(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
-
 		if strings.Contains(err.Error(), "connection refused") {
 			render.Render(w, r, ErrServiceUnavailable)
 			return
@@ -66,6 +65,12 @@ func SearchEmails(w http.ResponseWriter, r *http.Request) {
 
 	// get the search query from the body
 	if err := render.DecodeJSON(r.Body, &searchQuery); err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if err.Error() == "EOF" {
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("search query must contain at least one field")))
+			return
+		}
+
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
@@ -74,7 +79,6 @@ func SearchEmails(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
-
 		if strings.Contains(err.Error(), "connection refused") {
 			render.Render(w, r, ErrServiceUnavailable)
 			return
@@ -102,7 +106,6 @@ func QueryEmails(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
-
 		if strings.Contains(err.Error(), "connection refused") {
 			render.Render(w, r, ErrServiceUnavailable)
 			return
@@ -122,7 +125,6 @@ func GetEmailById(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
-
 		if strings.Contains(err.Error(), "connection refused") {
 			render.Render(w, r, ErrServiceUnavailable)
 			return
@@ -147,7 +149,6 @@ func ListAddresses(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
-
 		if strings.Contains(err.Error(), "connection refused") {
 			render.Render(w, r, ErrServiceUnavailable)
 			return

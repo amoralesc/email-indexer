@@ -30,11 +30,11 @@ func (service *ZincService) CreateIndex() error {
 		"storage_type": "disk",
 		"mappings": {
 			"properties": {
-				"message-id": {
+				"message_id": {
 					"type": "keyword",
 					"index": true,
-					"store": false,
-					"sortable": false,
+					"store": true,
+					"sortable": true,
 					"aggregatable": false,
 					"highlightable": false
 				},
