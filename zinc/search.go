@@ -91,7 +91,7 @@ func sendQuery(query string, serverAuth ServerAuth) (QueryResponse, error) {
 // GetAllEmailAddresses returns all email addresses from the zinc server.
 // This is a resource-intensive operation, so it should be used with caution.
 func GetAllEmailAddresses(serverAuth ServerAuth) ([]string, error) {
-	// create the query
+	// create the query template
 	const query = `
 	{
 		"search_type": "matchall",
@@ -170,7 +170,7 @@ func GetAllEmailAddresses(serverAuth ServerAuth) ([]string, error) {
 
 // GetAllEmails returns all emails from the zinc server (paginated).
 func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
-	// create the query
+	// create the query template
 	const queryTemplate = `
 	{
 		"query": {
@@ -183,9 +183,6 @@ func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse,
 		%v
 	}
 	`
-	if settings.Pagination.Size == 0 {
-		settings.Pagination.Size = defaultQuerySize
-	}
 	query := fmt.Sprintf(queryTemplate, parseQuerySettings(settings))
 
 	return sendQuery(query, serverAuth)
@@ -193,7 +190,7 @@ func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse,
 
 // GetEmailByMessageId returns the email that has the given message id.
 func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (QueryResponse, error) {
-	// create the query
+	// create the query template
 	const queryTemplate = `
 	{
 		"query": {
@@ -219,7 +216,7 @@ func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (QueryResponse
 
 // GetEmailsBySearchQuery returns all emails that match the given search query (paginated).
 func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
-	// create the query
+	// create the query template
 	const queryTemplate = `
 	{
 		"query": {
@@ -232,9 +229,7 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 		%v
 	}
 	`
-	if settings.Pagination.Size == 0 {
-		settings.Pagination.Size = defaultQuerySize
-	}
+
 	// parse the must parameters
 	var mustParameters []string
 	if searchQuery.From != "" {
@@ -263,8 +258,28 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 	// parse the filter parameters
 	filterParameters := parseDateRangeParameter(searchQuery.Date)
 
-	// create the query string
 	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, parseQuerySettings(settings))
+
+	return sendQuery(query, serverAuth)
+}
+
+// GetEmailByQueryString returns all emails that match the given query string (paginated).
+// A query string is a string composed of query language syntax. For example:
+// "query string +other word +content:test"
+func GetEmailByQueryString(queryString string, settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
+	// create the query template
+	const queryTemplate = `
+	{
+		"query": {
+			"query_string": {
+				"query": "%v"
+			}
+		}
+		%v
+	}
+	`
+
+	query := fmt.Sprintf(queryTemplate, queryString, parseQuerySettings(settings))
 
 	return sendQuery(query, serverAuth)
 }

@@ -66,6 +66,7 @@ func parseQuerySortSettings(sort []QuerySortSettings) string {
 	return sortStr
 }
 
+// parseQuerySettings parses the query settings to a string.
 func parseQuerySettings(settings QuerySettings) string {
 	if settings.Sort == nil {
 		settings.Sort = []QuerySortSettings{{Field: defaultSortField}}
