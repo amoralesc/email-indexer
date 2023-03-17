@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/amoralesc/indexer/router"
 	"github.com/amoralesc/indexer/routines"
 	"github.com/amoralesc/indexer/utils"
 	"github.com/amoralesc/indexer/zinc"
@@ -17,6 +19,7 @@ func main() {
 	dir := flag.String("d", "", "Directory of the emails. If none is provided, the server will use already indexed emails.")
 	flag.Parse()
 
+	port := utils.GetenvOrDefault("PORT", "8080")
 	zinc.Service = zinc.NewZincService(fmt.Sprintf("http://localhost:%v", utils.GetenvOrDefault("ZINC_PORT", "4080")), utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"), utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"))
 	numUploaderWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
 	numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
@@ -42,20 +45,7 @@ func main() {
 		log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 	}
 
-	query := &zinc.SearchQuery{
-		SubjectIncludes: "Match.com",
-	}
-	settings := &zinc.QuerySettings{
-		Pagination: &zinc.QueryPaginationSettings{
-			Size: 500,
-		},
-	}
-	log.Println("INFO: searching for emails")
-
-	resp, err := zinc.Service.GetEmailsBySearchQuery(query, settings)
-	if err != nil {
-		log.Fatal("FATAL: failed to search emails: ", err)
-	}
-	log.Printf("INFO: found %v emails\n", len(resp.Emails))
-
+	log.Println("INFO: starting HTTP server")
+	r := router.NewRouter()
+	http.ListenAndServe(fmt.Sprintf(":%v", port), r)
 }

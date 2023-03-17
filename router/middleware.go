@@ -19,6 +19,13 @@ func paginateAndSort(next http.Handler) http.Handler {
 		pageSize := r.URL.Query().Get("pageSize")
 		sortBy := r.URL.Query().Get("sortBy")
 
+		if page == "" {
+			page = "1"
+		}
+		if pageSize == "" {
+			pageSize = "0"
+		}
+
 		// cast page and page size to int
 		pageInt, err := strconv.Atoi(page)
 		if err != nil {

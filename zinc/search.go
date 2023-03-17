@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	searchPath = "/es/emails/_search"
-	aggPath    = "/api/emails/_search"
+	esSearchPath  = "/es/emails/_search"
+	apiSearchPath = "/api/emails/_search"
 )
 
 // QueryResponse is the response from the zinc server to a query.
@@ -60,7 +60,7 @@ func (service *ZincService) parseQueryResponse(body []byte) (*QueryResponse, err
 }
 
 // sendQuery sends a query to the zinc server. It returns the emails that match the query.
-func (service *ZincService) sendQuery(query string) (*QueryResponse, error) {
+func (service *ZincService) sendQuery(query string, searchPath string) (*QueryResponse, error) {
 	// create the request
 	req, err := http.NewRequest("POST", service.Url+searchPath, bytes.NewBuffer([]byte(query)))
 	if err != nil {
@@ -114,7 +114,7 @@ func (service *ZincService) GetAllEmailAddresses() ([]*string, error) {
 		queryStr := fmt.Sprintf(query, field, size)
 
 		// create the request
-		req, err := http.NewRequest("POST", service.Url+aggPath, bytes.NewBuffer([]byte(queryStr)))
+		req, err := http.NewRequest("POST", service.Url+apiSearchPath, bytes.NewBuffer([]byte(queryStr)))
 		if err != nil {
 			return nil, err
 		}
@@ -187,7 +187,7 @@ func (service *ZincService) GetAllEmails(settings *QuerySettings) (*QueryRespons
 	`
 	query := fmt.Sprintf(queryTemplate, settings.ParseQuerySettings())
 
-	return service.sendQuery(query)
+	return service.sendQuery(query, esSearchPath)
 }
 
 // GetEmailByMessageId returns the email that has the given message id.
@@ -204,7 +204,7 @@ func (service *ZincService) GetEmailByMessageId(messageId string) (*QueryRespons
 	`
 	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
 
-	return service.sendQuery(query)
+	return service.sendQuery(query, esSearchPath)
 }
 
 // GetEmailsBySearchQuery returns all emails that match the given search query (paginated).
@@ -253,7 +253,7 @@ func (service *ZincService) GetEmailsBySearchQuery(searchQuery *SearchQuery, set
 
 	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, settings.ParseQuerySettings())
 
-	return service.sendQuery(query)
+	return service.sendQuery(query, esSearchPath)
 }
 
 // GetEmailsByQueryString returns all emails that match the given query string (paginated).
@@ -264,8 +264,10 @@ func (service *ZincService) GetEmailsByQueryString(queryString string, settings 
 	const queryTemplate = `
 	{
 		"query": {
-			"query_string": {
-				"query": "%v"
+			"bool": {
+				"must": {
+					[ "query_string": { "query": "%v" } ]
+				}
 			}
 		}
 		%v
@@ -274,5 +276,5 @@ func (service *ZincService) GetEmailsByQueryString(queryString string, settings 
 
 	query := fmt.Sprintf(queryTemplate, queryString, settings.ParseQuerySettings())
 
-	return service.sendQuery(query)
+	return service.sendQuery(query, esSearchPath)
 }

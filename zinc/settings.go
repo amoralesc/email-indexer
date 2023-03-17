@@ -47,7 +47,7 @@ type SearchQuery struct {
 
 // ValidateSortField validates a sort field with the format: (+|-)(from|to|cc|bcc|date)
 func ValidateSortField(sortField string) error {
-	matches := regexp.MustCompile(`^(\+|-)(from|to|cc|bcc|date)$`).MatchString(sortField)
+	matches := regexp.MustCompile(`^-?(from|to|cc|bcc|date)$`).MatchString(sortField)
 	if !matches {
 		return fmt.Errorf("invalid sort field: %v", sortField)
 	}
@@ -56,6 +56,10 @@ func ValidateSortField(sortField string) error {
 
 // NewQuerySettings creates new QuerySettings.
 func NewQuerySettings(sortBy string, page, pageSize int) (*QuerySettings, error) {
+	if sortBy == "" {
+		sortBy = defaultSortField
+	}
+
 	sortFields := strings.Split(sortBy, ",")
 	for _, s := range sortFields {
 		err := ValidateSortField(s)
@@ -64,11 +68,8 @@ func NewQuerySettings(sortBy string, page, pageSize int) (*QuerySettings, error)
 		}
 	}
 
-	if sortBy == "" {
-		sortBy = defaultSortField
-	}
-	if page < 0 {
-		return nil, fmt.Errorf("page should be equal or greater than 0: %v", page)
+	if page <= 0 {
+		return nil, fmt.Errorf("page should be equal or greater than 1: %v", page)
 	}
 	if pageSize < 0 {
 		return nil, fmt.Errorf("pageSize should be equal or greater than 0: %v", pageSize)
@@ -77,13 +78,27 @@ func NewQuerySettings(sortBy string, page, pageSize int) (*QuerySettings, error)
 		pageSize = defaultQuerySize
 	}
 
-	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: page, Size: pageSize}}, nil
+	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: (page - 1) * pageSize, Size: pageSize}}, nil
 }
 
-// parseQuerySettings parses the query settings to a string.
+// ParseQuerySortSettings parses the query sort settings to a string.
+func (settings *QuerySettings) ParseQuerySortSettings() string {
+	sortFields := strings.Split(settings.Sort, ",")
+	sortFieldsStr := make([]string, len(sortFields))
+	for i, s := range sortFields {
+		if !strings.HasPrefix(s, "-") {
+			sortFieldsStr[i] = fmt.Sprintf(`"+%v"`, s)
+		} else {
+			sortFieldsStr[i] = fmt.Sprintf(`"%v"`, s)
+		}
+	}
+	return strings.Join(sortFieldsStr, ",")
+}
+
+// ParseQuerySettings parses the query settings to a string.
 func (settings *QuerySettings) ParseQuerySettings() string {
 	return fmt.Sprintf(`"sort": [ %v ], "from": %d, "size": %d`,
-		settings.Sort,
+		settings.ParseQuerySortSettings(),
 		settings.Pagination.Start,
 		settings.Pagination.Size)
 }
