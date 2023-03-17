@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/amoralesc/indexer/zinc"
+	"github.com/amoralesc/email-indexer/indexer/zinc"
 	"github.com/go-chi/render"
 )
 

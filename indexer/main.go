@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/amoralesc/indexer/router"
-	"github.com/amoralesc/indexer/routines"
-	"github.com/amoralesc/indexer/utils"
-	"github.com/amoralesc/indexer/zinc"
+	"github.com/amoralesc/email-indexer/indexer/router"
+	"github.com/amoralesc/email-indexer/indexer/routines"
+	"github.com/amoralesc/email-indexer/indexer/utils"
+	"github.com/amoralesc/email-indexer/indexer/zinc"
 )
 
 func main() {

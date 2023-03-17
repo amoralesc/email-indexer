@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/amoralesc/indexer/email"
+	"github.com/amoralesc/email-indexer/indexer/email"
 )
 
 const (

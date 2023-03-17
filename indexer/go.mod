@@ -1,4 +1,4 @@
-module github.com/amoralesc/indexer
+module github.com/amoralesc/email-indexer/indexer
 
 go 1.20
 

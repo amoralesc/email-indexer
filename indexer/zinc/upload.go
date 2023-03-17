@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/amoralesc/indexer/email"
+	"github.com/amoralesc/email-indexer/indexer/email"
 )
 
 // BulkEmails is used to upload emails in bulk

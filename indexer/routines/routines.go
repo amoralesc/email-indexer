@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/amoralesc/indexer/email"
-	"github.com/amoralesc/indexer/zinc"
+	"github.com/amoralesc/email-indexer/indexer/email"
+	"github.com/amoralesc/email-indexer/indexer/zinc"
 )
 
 func parseEmailFiles(files <-chan string, emails chan<- *email.Email) {
