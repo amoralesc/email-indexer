@@ -17,9 +17,9 @@ const (
 )
 
 type QueryResponse struct {
-	Total  int           `json:"total"`
-	Took   int           `json:"took"`
-	Emails []email.Email `json:"emails"`
+	Total  int            `json:"total"`
+	Took   int            `json:"took"`
+	Emails []*email.Email `json:"emails"`
 }
 
 // parseQueryResponse parses the query response from the zinc server.
@@ -42,10 +42,10 @@ func parseQueryResponse(body []byte) (*QueryResponse, error) {
 	}
 
 	// extract the emails
-	emails := func() []email.Email {
-		emails := make([]email.Email, len(resp.Hits.Hits))
+	emails := func() []*email.Email {
+		emails := make([]*email.Email, len(resp.Hits.Hits))
 		for i, hit := range resp.Hits.Hits {
-			emails[i] = hit.Source
+			emails[i] = &hit.Source
 		}
 		return emails
 	}()

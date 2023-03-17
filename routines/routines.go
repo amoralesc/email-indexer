@@ -10,27 +10,27 @@ import (
 	"github.com/amoralesc/indexer/zinc"
 )
 
-func parseEmailFiles(files <-chan string, emails chan<- email.Email) {
+func parseEmailFiles(files <-chan string, emails chan<- *email.Email) {
 	for file := range files {
-		emailStruct, err := email.EmailFromFile(file)
+		emailObj, err := email.EmailFromFile(file)
 		if err != nil {
 			log.Printf("ERROR: failed to parse %v: %v", file, err)
 		} else {
-			emails <- emailStruct
+			emails <- emailObj
 		}
 	}
 }
 
-func uploadEmails(emails <-chan email.Email, bulkUploadSize int, serverAuth *zinc.ServerAuth) {
-	bulk := zinc.BulkEmails{
+func uploadEmails(emails <-chan *email.Email, bulkUploadSize int, serverAuth *zinc.ServerAuth) {
+	bulk := &zinc.BulkEmails{
 		Index:   "emails",
 		Records: make([]email.Email, bulkUploadSize),
 	}
 	parsed := 0
 	total := 0
 	// upload emails in batches of bulkUploadSize
-	for emailStruct := range emails {
-		bulk.Records[parsed] = emailStruct
+	for emailObj := range emails {
+		bulk.Records[parsed] = *emailObj
 		parsed++
 		if parsed == bulkUploadSize {
 			log.Printf("TRACE: uploading %d emails\n", parsed)
@@ -56,7 +56,7 @@ func uploadEmails(emails <-chan email.Email, bulkUploadSize int, serverAuth *zin
 func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, serverAuth *zinc.ServerAuth) {
 	// create channels for passing data between goroutines
 	files := make(chan string)
-	emails := make(chan email.Email)
+	emails := make(chan *email.Email)
 
 	// spawn uploader goroutines
 	log.Printf("TRACE: spawning %d uploader goroutines", numUploaderWorkers)

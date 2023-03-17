@@ -125,9 +125,9 @@ func CreateIndex(serverAuth *ServerAuth) error {
 }
 
 // UploadEmails uploads a list of emails to the zinc server
-func UploadEmails(bulk BulkEmails, serverAuth *ServerAuth) error {
+func UploadEmails(bulk *BulkEmails, serverAuth *ServerAuth) error {
 	// convert the struct to JSON
-	jsonBytes, err := json.Marshal(bulk)
+	jsonBytes, err := json.Marshal(*bulk)
 	if err != nil {
 		return err
 	}

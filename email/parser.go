@@ -7,8 +7,7 @@ import (
 	"time"
 )
 
-// Email represents an email message that can
-// be JSON encoded
+// Email represents an email message that can be JSON encoded.
 type Email struct {
 	MessageID string    `json:"message_id"`
 	Date      time.Time `json:"date"`
@@ -20,24 +19,23 @@ type Email struct {
 	Body      string    `json:"body"`
 }
 
-// EmailFromFile parses an email file located at path
-// to an Email struct for easy JSON encoding
-func EmailFromFile(path string) (Email, error) {
+// EmailFromFile parses an email file located at path to an Email struct for easy JSON encoding.
+func EmailFromFile(path string) (*Email, error) {
 	// open the email file and read its contents
 	file, err := os.Open(path)
 	if err != nil {
-		return Email{}, err
+		return nil, err
 	}
 	defer file.Close()
 
 	// parse the email
 	msg, err := mail.ReadMessage(file)
 	if err != nil {
-		return Email{}, err
+		return nil, err
 	}
 
 	// convert the msg to a struct
-	emailStruct := Email{
+	emailObj := &Email{
 		MessageID: msg.Header.Get("Message-ID"),
 		From:      msg.Header.Get("From"),
 		Subject:   msg.Header.Get("Subject"),
@@ -45,43 +43,43 @@ func EmailFromFile(path string) (Email, error) {
 	// parse the date
 	date, err := msg.Header.Date()
 	if err != nil {
-		return Email{}, err
+		return nil, err
 	}
-	emailStruct.Date = date
+	emailObj.Date = date
 	// parse the To header if it exists
 	if msg.Header.Get("To") != "" {
 		to, err := msg.Header.AddressList("To")
 		if err != nil {
-			return Email{}, err
+			return nil, err
 		}
 		for _, addr := range to {
-			emailStruct.To = append(emailStruct.To, addr.Address)
+			emailObj.To = append(emailObj.To, addr.Address)
 		}
 	}
 	// parse the Cc header if it exists
 	if msg.Header.Get("Cc") != "" {
 		cc, err := msg.Header.AddressList("Cc")
 		if err != nil {
-			return Email{}, err
+			return nil, err
 		}
 		for _, addr := range cc {
-			emailStruct.Cc = append(emailStruct.Cc, addr.Address)
+			emailObj.Cc = append(emailObj.Cc, addr.Address)
 		}
 	}
 	// parse the Bcc header if it exists
 	if msg.Header.Get("Bcc") != "" {
 		bcc, err := msg.Header.AddressList("Bcc")
 		if err != nil {
-			return Email{}, err
+			return nil, err
 		}
 		for _, addr := range bcc {
-			emailStruct.Bcc = append(emailStruct.Bcc, addr.Address)
+			emailObj.Bcc = append(emailObj.Bcc, addr.Address)
 		}
 	}
 	// parse the body
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(msg.Body)
-	emailStruct.Body = buf.String()
+	emailObj.Body = buf.String()
 
-	return emailStruct, nil
+	return emailObj, nil
 }
