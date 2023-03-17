@@ -22,9 +22,8 @@ const (
 	indexPath  = "/api/index/"
 )
 
-// CreateIndex creates an index in the zinc server
-// with a mapping that matches the email.Email struct
-func CreateIndex(serverAuth *ServerAuth) error {
+// CreateIndex creates an index in the zinc server with a mapping that matches the Email struct
+func (service *ZincService) CreateIndex() error {
 	const emailsIndexMapping = `
 	{
 		"name": "emails",
@@ -101,11 +100,11 @@ func CreateIndex(serverAuth *ServerAuth) error {
 	}`
 
 	// create the post request
-	req, err := http.NewRequest("POST", serverAuth.Url+indexPath, bytes.NewReader([]byte(emailsIndexMapping)))
+	req, err := http.NewRequest("POST", service.Url+indexPath, bytes.NewReader([]byte(emailsIndexMapping)))
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(serverAuth.User, serverAuth.Password)
+	req.SetBasicAuth(service.User, service.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	// send the request
@@ -125,7 +124,7 @@ func CreateIndex(serverAuth *ServerAuth) error {
 }
 
 // UploadEmails uploads a list of emails to the zinc server
-func UploadEmails(bulk *BulkEmails, serverAuth *ServerAuth) error {
+func (service *ZincService) UploadEmails(bulk *BulkEmails) error {
 	// convert the struct to JSON
 	jsonBytes, err := json.Marshal(*bulk)
 	if err != nil {
@@ -133,11 +132,11 @@ func UploadEmails(bulk *BulkEmails, serverAuth *ServerAuth) error {
 	}
 
 	// create the post request
-	req, err := http.NewRequest("POST", serverAuth.Url+uploadPath, bytes.NewReader(jsonBytes))
+	req, err := http.NewRequest("POST", service.Url+uploadPath, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(serverAuth.User, serverAuth.Password)
+	req.SetBasicAuth(service.User, service.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	// send the request
@@ -157,13 +156,13 @@ func UploadEmails(bulk *BulkEmails, serverAuth *ServerAuth) error {
 }
 
 // DeleteIndex deletes the emails index from the zinc server
-func DeleteIndex(serverAuth *ServerAuth) error {
+func (service *ZincService) DeleteIndex() error {
 	// create the delete request
-	req, err := http.NewRequest("DELETE", serverAuth.Url+indexPath+"emails", nil)
+	req, err := http.NewRequest("DELETE", service.Url+indexPath+"emails", nil)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(serverAuth.User, serverAuth.Password)
+	req.SetBasicAuth(service.User, service.Password)
 
 	// send the request
 	resp, err := http.DefaultClient.Do(req)
