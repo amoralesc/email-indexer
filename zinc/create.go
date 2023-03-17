@@ -24,7 +24,7 @@ const (
 
 // CreateIndex creates an index in the zinc server
 // with a mapping that matches the email.Email struct
-func CreateIndex(serverAuth ServerAuth) error {
+func CreateIndex(serverAuth *ServerAuth) error {
 	const emailsIndexMapping = `
 	{
 		"name": "emails",
@@ -125,7 +125,7 @@ func CreateIndex(serverAuth ServerAuth) error {
 }
 
 // UploadEmails uploads a list of emails to the zinc server
-func UploadEmails(bulk BulkEmails, serverAuth ServerAuth) error {
+func UploadEmails(bulk BulkEmails, serverAuth *ServerAuth) error {
 	// convert the struct to JSON
 	jsonBytes, err := json.Marshal(bulk)
 	if err != nil {
@@ -157,7 +157,7 @@ func UploadEmails(bulk BulkEmails, serverAuth ServerAuth) error {
 }
 
 // DeleteIndex deletes the emails index from the zinc server
-func DeleteIndex(serverAuth ServerAuth) error {
+func DeleteIndex(serverAuth *ServerAuth) error {
 	// create the delete request
 	req, err := http.NewRequest("DELETE", serverAuth.Url+indexPath+"emails", nil)
 	if err != nil {

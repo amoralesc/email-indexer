@@ -23,7 +23,7 @@ type QueryResponse struct {
 }
 
 // parseQueryResponse parses the query response from the zinc server.
-func parseQueryResponse(body []byte) (QueryResponse, error) {
+func parseQueryResponse(body []byte) (*QueryResponse, error) {
 	// parse the response
 	var resp struct {
 		Took int `json:"took"`
@@ -38,7 +38,7 @@ func parseQueryResponse(body []byte) (QueryResponse, error) {
 	}
 
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return QueryResponse{}, err
+		return nil, err
 	}
 
 	// extract the emails
@@ -50,7 +50,7 @@ func parseQueryResponse(body []byte) (QueryResponse, error) {
 		return emails
 	}()
 
-	return QueryResponse{
+	return &QueryResponse{
 		Total:  resp.Hits.Total.Value,
 		Took:   resp.Took,
 		Emails: emails,
@@ -58,31 +58,31 @@ func parseQueryResponse(body []byte) (QueryResponse, error) {
 }
 
 // sendQuery sends a query to the zinc server. It returns the emails that match the query.
-func sendQuery(query string, serverAuth ServerAuth) (QueryResponse, error) {
+func sendQuery(query string, serverAuth *ServerAuth) (*QueryResponse, error) {
 	// create the request
 	req, err := http.NewRequest("POST", serverAuth.Url+searchPath, bytes.NewBuffer([]byte(query)))
 	if err != nil {
-		return QueryResponse{}, err
+		return nil, err
 	}
 	req.SetBasicAuth(serverAuth.User, serverAuth.Password)
 
 	// send the request
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return QueryResponse{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	// check the response
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		return QueryResponse{}, fmt.Errorf("zinc server responded with code %v: %v", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("zinc server responded with code %v: %v", resp.StatusCode, string(body))
 	}
 
 	// parse the response
 	queryResponse, err := parseQueryResponse(body)
 	if err != nil {
-		return QueryResponse{}, fmt.Errorf("error parsing response: %v", err)
+		return nil, fmt.Errorf("error parsing response: %v", err)
 	}
 
 	return queryResponse, nil
@@ -90,7 +90,7 @@ func sendQuery(query string, serverAuth ServerAuth) (QueryResponse, error) {
 
 // GetAllEmailAddresses returns all email addresses from the zinc server.
 // This is a resource-intensive operation, so it should be used with caution.
-func GetAllEmailAddresses(serverAuth ServerAuth) ([]string, error) {
+func GetAllEmailAddresses(serverAuth *ServerAuth) ([]string, error) {
 	// create the query template
 	const query = `
 	{
@@ -169,7 +169,7 @@ func GetAllEmailAddresses(serverAuth ServerAuth) ([]string, error) {
 }
 
 // GetAllEmails returns all emails from the zinc server (paginated).
-func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
+func GetAllEmails(settings *QuerySettings, serverAuth *ServerAuth) (*QueryResponse, error) {
 	// create the query template
 	const queryTemplate = `
 	{
@@ -183,13 +183,13 @@ func GetAllEmails(settings QuerySettings, serverAuth ServerAuth) (QueryResponse,
 		%v
 	}
 	`
-	query := fmt.Sprintf(queryTemplate, parseQuerySettings(settings))
+	query := fmt.Sprintf(queryTemplate, settings.parseQuerySettings())
 
 	return sendQuery(query, serverAuth)
 }
 
 // GetEmailByMessageId returns the email that has the given message id.
-func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (QueryResponse, error) {
+func GetEmailByMessageId(messageId string, serverAuth *ServerAuth) (*QueryResponse, error) {
 	// create the query template
 	const queryTemplate = `
 	{
@@ -202,20 +202,11 @@ func GetEmailByMessageId(messageId string, serverAuth ServerAuth) (QueryResponse
 	`
 	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
 
-	resp, err := sendQuery(query, serverAuth)
-	if err != nil {
-		return QueryResponse{}, err
-	}
-
-	if len(resp.Emails) == 0 {
-		return QueryResponse{}, fmt.Errorf("no email found with message id %v", messageId)
-	}
-
-	return resp, nil
+	return sendQuery(query, serverAuth)
 }
 
 // GetEmailsBySearchQuery returns all emails that match the given search query (paginated).
-func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
+func GetEmailsBySearchQuery(searchQuery *SearchQuery, settings *QuerySettings, serverAuth *ServerAuth) (*QueryResponse, error) {
 	// create the query template
 	const queryTemplate = `
 	{
@@ -258,7 +249,7 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 	// parse the filter parameters
 	filterParameters := parseDateRangeParameter(searchQuery.Date)
 
-	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, parseQuerySettings(settings))
+	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, settings.parseQuerySettings())
 
 	return sendQuery(query, serverAuth)
 }
@@ -266,7 +257,7 @@ func GetEmailsBySearchQuery(searchQuery SearchQuery, settings QuerySettings, ser
 // GetEmailByQueryString returns all emails that match the given query string (paginated).
 // A query string is a string composed of query language syntax. For example:
 // "query string +other word +content:test"
-func GetEmailByQueryString(queryString string, settings QuerySettings, serverAuth ServerAuth) (QueryResponse, error) {
+func GetEmailByQueryString(queryString string, settings *QuerySettings, serverAuth *ServerAuth) (*QueryResponse, error) {
 	// create the query template
 	const queryTemplate = `
 	{
@@ -279,7 +270,7 @@ func GetEmailByQueryString(queryString string, settings QuerySettings, serverAut
 	}
 	`
 
-	query := fmt.Sprintf(queryTemplate, queryString, parseQuerySettings(settings))
+	query := fmt.Sprintf(queryTemplate, queryString, settings.parseQuerySettings())
 
 	return sendQuery(query, serverAuth)
 }

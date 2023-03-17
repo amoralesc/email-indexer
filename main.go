@@ -24,7 +24,7 @@ func main() {
 	dir := flag.String("d", "", "Directory of the emails. If none is provided, the server will use already indexed emails.")
 	flag.Parse()
 
-	zincServerAuth := zinc.ServerAuth{
+	zincServerAuth := &zinc.ServerAuth{
 		Url:      ZincUrl,
 		User:     ZincAdminUser,
 		Password: ZincAdminPassword,
@@ -50,11 +50,11 @@ func main() {
 		log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 	}
 
-	query := zinc.SearchQuery{
+	query := &zinc.SearchQuery{
 		SubjectIncludes: "Match.com",
 	}
-	settings := zinc.QuerySettings{
-		Pagination: zinc.QueryPaginationSettings{
+	settings := &zinc.QuerySettings{
+		Pagination: &zinc.QueryPaginationSettings{
 			Size: 500,
 		},
 	}

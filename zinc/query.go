@@ -25,8 +25,8 @@ type QueryPaginationSettings struct {
 
 // QuerySettings sets the parameters for the query.
 type QuerySettings struct {
-	Sort       []QuerySortSettings     // the sorting parameters. Default: [{Field: "date", SortAsc: false}]
-	Pagination QueryPaginationSettings // the pagination parameters. Default: {Start: 0, Size: 100}
+	Sort       []*QuerySortSettings     // the sorting parameters. Default: [{Field: "date", SortAsc: false}]
+	Pagination *QueryPaginationSettings // the pagination parameters. Default: {Start: 0, Size: 100}
 }
 
 // DateRange represents a range of dates (from, to) to filter the query.
@@ -50,9 +50,9 @@ type SearchQuery struct {
 }
 
 // parseQuerySortSettings parses the sort settings to a string.
-func parseQuerySortSettings(sort []QuerySortSettings) string {
+func parseQuerySortSettings(sortSettings []*QuerySortSettings) string {
 	sortStr := ``
-	for _, s := range sort {
+	for _, s := range sortSettings {
 		if sortStr != `` {
 			sortStr += `, `
 		}
@@ -67,9 +67,9 @@ func parseQuerySortSettings(sort []QuerySortSettings) string {
 }
 
 // parseQuerySettings parses the query settings to a string.
-func parseQuerySettings(settings QuerySettings) string {
+func (settings *QuerySettings) parseQuerySettings() string {
 	if settings.Sort == nil {
-		settings.Sort = []QuerySortSettings{{Field: defaultSortField}}
+		settings.Sort = []*QuerySortSettings{{Field: defaultSortField, SortAsc: false}}
 	}
 	if settings.Pagination.Size == 0 {
 		settings.Pagination.Size = defaultQuerySize
