@@ -3,6 +3,10 @@ defineProps<{
   label: string
   selected: boolean
 }>()
+
+defineEmits<{
+  click: () => void
+}>()
 </script>
 
 <template>

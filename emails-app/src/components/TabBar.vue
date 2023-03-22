@@ -8,6 +8,10 @@ const props = defineProps<{
   selectedTab: string
 }>()
 
+defineEmits<{
+  selectTab: (tabName: string) => void
+}>()
+
 const isSelected = (tabName: string) => {
   return props.selectedTab === tabName
 }
