@@ -2,10 +2,10 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useTabStore = defineStore('tab', () => {
-  const tab = ref('all')
-  function selectTab(tabName: string) {
-    tab.value = tabName
+  const selectedTab = ref('all')
+  function setTab(tabName: string) {
+    selectedTab.value = tabName
   }
 
-  return { tab, selectTab }
+  return { selectedTab, setTab }
 })

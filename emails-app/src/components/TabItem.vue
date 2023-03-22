@@ -26,7 +26,7 @@ defineProps<{
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 16px;
+  padding: 0 1.25rem 0 1rem;
   height: 100%;
   cursor: pointer;
 }
@@ -36,18 +36,18 @@ defineProps<{
 }
 
 .tab-item__icon {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   color: var(--color-text);
 }
 
 .tab-item__label {
   font-size: 1rem;
-  margin-left: 12px;
+  margin-left: 0.75rem;
 }
 
 .tab-item--selected {
-  box-shadow: 0px -2px var(--color-primary) inset;
+  box-shadow: 0 -2px var(--color-primary) inset;
 }
 
 .tab-item--selected .tab-item__icon {
@@ -56,11 +56,5 @@ defineProps<{
 
 .tab-item--selected .tab-item__label {
   color: var(--color-primary);
-}
-
-@media (min-width: 1024px) {
-  .tab-item {
-    padding: 0 24px;
-  }
 }
 </style>

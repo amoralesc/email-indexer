@@ -1,35 +1,18 @@
 <script setup lang="ts">
 import TabItem from './TabItem.vue'
-import InboxIcon from './icons/IconInbox.vue'
-import InboxFilledIcon from './icons/IconInboxFilled.vue'
-import StarIcon from './icons/IconStar.vue'
-import StarFilledIcon from './icons/IconStarFilled.vue'
-import { useTabStore } from '../stores/tab'
 
-const store = useTabStore()
+import type { Tab } from '@/models/tab'
 
-const tabs = [
-  {
-    label: 'All',
-    icon: InboxIcon,
-    iconFilled: InboxFilledIcon,
-    tab: 'all'
-  },
-  {
-    label: 'Starred',
-    icon: StarIcon,
-    iconFilled: StarFilledIcon,
-    tab: 'starred'
-  }
-]
+const props = defineProps<{
+  tabs: Tab[]
+  selectedTab: string
+}>()
 
 const isSelected = (tabName: string) => {
-  return store.tab === tabName
+  return props.selectedTab === tabName
 }
-
-const getIcon = (tabName: string) => {
-  const { icon, iconFilled } = tabs.find((t) => t.tab === tabName) || tabs[0]
-  return isSelected(tabName) ? iconFilled : icon
+const getIcon = (tab: Tab) => {
+  return isSelected(tab.tabName) ? tab.iconFilled : tab.icon
 }
 </script>
 
@@ -37,12 +20,12 @@ const getIcon = (tabName: string) => {
   <div class="tab-bar">
     <TabItem
       v-for="t in tabs"
-      :key="t.tab"
+      :key="t.tabName"
       :label="t.label"
-      :selected="isSelected(t.tab)"
-      @click="() => store.selectTab(t.tab)"
+      :selected="isSelected(t.tabName)"
+      @click="$emit('selectTab', t.tabName)"
     >
-      <component :is="getIcon(t.tab)" />
+      <component :is="getIcon(t)" />
     </TabItem>
   </div>
 </template>
@@ -53,7 +36,8 @@ const getIcon = (tabName: string) => {
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  height: 48px;
+  width: 100%;
+  height: 3rem;
   border-bottom: 1px solid var(--color-border);
 }
 </style>
