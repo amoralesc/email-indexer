@@ -17,6 +17,8 @@ type Email struct {
 	Bcc       []string  `json:"bcc"`
 	Subject   string    `json:"subject"`
 	Body      string    `json:"body"`
+	IsRead    bool      `json:"is_read"`
+	IsStarred bool      `json:"is_starred"`
 }
 
 // EmailFromFile parses an email file located at path to an Email struct for easy JSON encoding.
@@ -39,6 +41,8 @@ func EmailFromFile(path string) (*Email, error) {
 		MessageID: msg.Header.Get("Message-ID"),
 		From:      msg.Header.Get("From"),
 		Subject:   msg.Header.Get("Subject"),
+		IsRead:    false,
+		IsStarred: false,
 	}
 	// parse the date
 	date, err := msg.Header.Date()

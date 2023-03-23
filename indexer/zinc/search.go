@@ -7,20 +7,34 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/amoralesc/email-indexer/indexer/email"
+	"time"
 )
 
 const (
-	esSearchPath  = "/es/emails/_search"
-	apiSearchPath = "/api/emails/_search"
+	esSearchPath = "/es/emails/_search"
+	apiPath      = "/api/emails"
 )
+
+// EmailResponse is the returned email format from the zinc server.
+type EmailResponse struct {
+	Id        string    `json:"id"`
+	MessageId string    `json:"message_id"`
+	Date      time.Time `json:"date"`
+	From      string    `json:"from"`
+	To        []string  `json:"to"`
+	Cc        []string  `json:"cc"`
+	Bcc       []string  `json:"bcc"`
+	Subject   string    `json:"subject"`
+	Body      string    `json:"body"`
+	IsRead    bool      `json:"is_read"`
+	IsStarred bool      `json:"is_starred"`
+}
 
 // QueryResponse is the response from the zinc server to a query.
 type QueryResponse struct {
-	Total  int           `json:"total"`  // Total number of emails that match the query (not the number of emails returned)
-	Took   int           `json:"took"`   // Time it took to execute the query
-	Emails []email.Email `json:"emails"` // Emails that match the query (paginated)
+	Total  int             `json:"total"`  // Total number of emails that match the query (not the number of emails returned)
+	Took   int             `json:"took"`   // Time it took to execute the query
+	Emails []EmailResponse `json:"emails"` // Emails that match the query (paginated)
 }
 
 // parseQueryResponse parses the body response from the zinc server
@@ -34,7 +48,8 @@ func (service *ZincService) parseQueryResponse(body []byte) (*QueryResponse, err
 				Value int `json:"value"`
 			} `json:"total"`
 			Hits []struct {
-				Source email.Email `json:"_source"`
+				Id     string        `json:"_id"`
+				Source EmailResponse `json:"_source"`
 			} `json:"hits"`
 		} `json:"hits"`
 	}
@@ -44,10 +59,11 @@ func (service *ZincService) parseQueryResponse(body []byte) (*QueryResponse, err
 	}
 
 	// extract the emails
-	emails := func() []email.Email {
-		emails := make([]email.Email, len(resp.Hits.Hits))
+	emails := func() []EmailResponse {
+		emails := make([]EmailResponse, len(resp.Hits.Hits))
 		for i, hit := range resp.Hits.Hits {
 			emails[i] = hit.Source
+			emails[i].Id = hit.Id
 		}
 		return emails
 	}()
@@ -90,86 +106,6 @@ func (service *ZincService) sendQuery(query string, searchPath string) (*QueryRe
 	return queryResponse, nil
 }
 
-// GetAllEmailAddresses returns all email addresses from the zinc server.
-// This is a resource-intensive operation, so it should be used with caution.
-func (service *ZincService) GetAllEmailAddresses() ([]string, error) {
-	// create the query template
-	const queryTemplate = `
-	{
-		"search_type": "matchall",
-		"max_results": 0,
-		"aggs": {
-			"results": {
-				"agg_type": "term",
-				"field": "%v",
-				"size": %d
-			}
-		}
-	}`
-	const size = 100000 // this is a magic number, but it should be enough
-
-	// the request is done for each field: from, to, cc, bcc
-	var addresses map[string]struct{} // using a map to avoid duplicates
-	for _, field := range []string{"from", "to", "cc", "bcc"} {
-		queryStr := fmt.Sprintf(queryTemplate, field, size)
-
-		// create the request
-		req, err := http.NewRequest("POST", service.Url+apiSearchPath, bytes.NewBuffer([]byte(queryStr)))
-		if err != nil {
-			return nil, err
-		}
-		req.SetBasicAuth(service.User, service.Password)
-
-		// send the request
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		// check the response
-		body, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode != 200 {
-			return nil, fmt.Errorf("zinc server responded with code %v: %v", resp.StatusCode, string(body))
-		}
-
-		// parse the response
-		var respStruct struct {
-			Aggregations struct {
-				Results struct {
-					Buckets []struct {
-						Key interface{} `json:"key"`
-					} `json:"buckets"`
-				} `json:"results"`
-			} `json:"aggregations"`
-		}
-		if err := json.Unmarshal(body, &respStruct); err != nil {
-			return nil, err
-		}
-
-		// extract the addresses
-		for _, bucket := range respStruct.Aggregations.Results.Buckets {
-			if addresses == nil {
-				addresses = make(map[string]struct{})
-			}
-			// key can be a string or a number, if its a number it should be ignored
-			if addr, ok := bucket.Key.(string); ok {
-				addresses[addr] = struct{}{}
-			}
-		}
-	}
-
-	// convert the map to a slice
-	addrs := make([]string, len(addresses))
-	i := 0
-	for addr := range addresses {
-		addrs[i] = addr
-		i++
-	}
-
-	return addrs, nil
-}
-
 // GetAllEmails returns all emails from the zinc server (paginated).
 func (service *ZincService) GetAllEmails(settings *QuerySettings) (*QueryResponse, error) {
 	// create the query template
@@ -180,29 +116,21 @@ func (service *ZincService) GetAllEmails(settings *QuerySettings) (*QueryRespons
 				"must": [
 					{ "match_all": {} }
 				]
+				%v
 			}
 		},
 		%v
 	}
 	`
-	query := fmt.Sprintf(queryTemplate, settings.ParseQuerySettings())
 
-	return service.sendQuery(query, esSearchPath)
-}
-
-// GetEmailByMessageId returns the email that has the given message id.
-func (service *ZincService) GetEmailByMessageId(messageId string) (*QueryResponse, error) {
-	// create the query template
-	const queryTemplate = `
-	{
-		"query": {
-			"bool": {
-				"must": [ %v ]
-			}
-		}
+	var filter = `, "filter": [ %v ]`
+	if settings.StarredOnly {
+		filter = fmt.Sprintf(filter, settings.ParseStarredFilter())
+	} else {
+		filter = ""
 	}
-	`
-	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
+
+	query := fmt.Sprintf(queryTemplate, filter, settings.ParseQuerySettings())
 
 	return service.sendQuery(query, esSearchPath)
 }
@@ -249,9 +177,13 @@ func (service *ZincService) GetEmailsBySearchQuery(searchQuery *SearchQuery, set
 		mustNotParameters = parseMatchTextParameter("body", searchQuery.BodyExcludes)
 	}
 	// parse the filter parameters
-	filterParameters := parseDateRangeParameter(searchQuery.Date)
+	var filterParameters []string
+	filterParameters = append(filterParameters, parseDateRangeParameter(searchQuery.Date))
+	if settings.StarredOnly {
+		filterParameters = append(filterParameters, settings.ParseStarredFilter())
+	}
 
-	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, filterParameters, settings.ParseQuerySettings())
+	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, strings.Join(filterParameters, ", "), settings.ParseQuerySettings())
 
 	return service.sendQuery(query, esSearchPath)
 }
@@ -268,13 +200,84 @@ func (service *ZincService) GetEmailsByQueryString(queryString string, settings 
 				"must": [
 					{ "query_string": { "query": "%v" } }
 				]
+				%v
 			}
 		},
 		%v
 	}
 	`
 
-	query := fmt.Sprintf(queryTemplate, queryString, settings.ParseQuerySettings())
+	var filter = `, "filter": [ %v ]`
+	if settings.StarredOnly {
+		filter = fmt.Sprintf(filter, settings.ParseStarredFilter())
+	} else {
+		filter = ""
+	}
+
+	query := fmt.Sprintf(queryTemplate, queryString, filter, settings.ParseQuerySettings())
 
 	return service.sendQuery(query, esSearchPath)
+}
+
+// GetEmailByMessageId returns the email that has the given message id.
+func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailResponse, error) {
+	// create the query template
+	const queryTemplate = `
+	{
+		"query": {
+			"bool": {
+				"must": [ %v ]
+			}
+		}
+	}
+	`
+	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
+
+	queryResponse, err := service.sendQuery(query, esSearchPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(queryResponse.Emails) == 0 {
+		return nil, fmt.Errorf("messsage id not found %v", messageId)
+	}
+
+	return &queryResponse.Emails[0], nil
+}
+
+// GetEmailById returns the email that has the given _id (zinc id).
+func (service *ZincService) GetEmailById(id string) (*EmailResponse, error) {
+	// create the request
+	req, err := http.NewRequest("GET", service.Url+apiPath+"/_doc/"+id, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(service.User, service.Password)
+
+	// send the request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// check the response
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("zinc server responded with code %v: %v", resp.StatusCode, string(body))
+	}
+
+	// parse the response
+	var respStruct struct {
+		Id     string        `json:"_id"`
+		Source EmailResponse `json:"_source"`
+	}
+
+	err = json.Unmarshal(body, &respStruct)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing response: %v", err)
+	}
+
+	email := respStruct.Source
+	email.Id = respStruct.Id
+
+	return &email, nil
 }

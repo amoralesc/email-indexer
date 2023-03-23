@@ -11,20 +11,24 @@ import (
 	"github.com/go-chi/render"
 )
 
-// paginateAndSort is a middleware that loads the zinc.QuerySettings
+// loadQuerySettings is a middleware that loads the zinc.QuerySettings
 // from the query parameters and adds them as context values.
-func paginateAndSort(next http.Handler) http.Handler {
+func loadQuerySettings(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get the page and page size
 		page := r.URL.Query().Get("page")
-		pageSize := r.URL.Query().Get("pageSize")
-		sortBy := r.URL.Query().Get("sortBy")
+		pageSize := r.URL.Query().Get("page_size")
+		sortBy := r.URL.Query().Get("sort_by")
+		starredOnly := r.URL.Query().Get("starred_only")
 
 		if page == "" {
 			page = "1"
 		}
 		if pageSize == "" {
 			pageSize = "0"
+		}
+		if starredOnly == "" {
+			starredOnly = "false"
 		}
 
 		// cast page and page size to int
@@ -37,12 +41,19 @@ func paginateAndSort(next http.Handler) http.Handler {
 		pageSizeInt, err := strconv.Atoi(pageSize)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
-			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("pageSize should be an integer")))
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("page_size should be an integer")))
+			return
+		}
+		// cast starredOnly to bool
+		starredOnlyBool, err := strconv.ParseBool(starredOnly)
+		if err != nil {
+			log.Printf("ERROR: %v\n", err)
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("starred_only should be a boolean")))
 			return
 		}
 
 		// create the query settings
-		querySettings, err := zinc.NewQuerySettings(sortBy, pageInt, pageSizeInt)
+		querySettings, err := zinc.NewQuerySettings(sortBy, pageInt, pageSizeInt, starredOnlyBool)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
 			render.Render(w, r, ErrInvalidRequest(err))

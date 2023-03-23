@@ -23,16 +23,16 @@ func NewRouter() http.Handler {
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	r.Route("/api/emails", func(r chi.Router) {
-		r.With(paginateAndSort).Get("/", ListEmails)
-		r.With(paginateAndSort).Get("/search", SearchEmails)
-		r.With(paginateAndSort).Get("/query", QueryEmails)
-
+		r.With(loadQuerySettings).Get("/", ListEmails)
+		r.With(loadQuerySettings).Get("/search", SearchEmails)
+		r.With(loadQuerySettings).Get("/query", QueryEmails)
 		r.Route("/{emailId}", func(r chi.Router) {
 			r.Get("/", GetEmailById)
 		})
+		r.Route("/message_id/{messageId}", func(r chi.Router) {
+			r.Get("/", GetEmailByMessageId)
+		})
 	})
-
-	r.Get("/api/addresses", ListAddresses)
 
 	return r
 }
@@ -119,9 +119,9 @@ func QueryEmails(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, resp)
 }
 
-// GetEmailById returns an email by its message id.
+// GetEmailById returns an email by its id.
 func GetEmailById(w http.ResponseWriter, r *http.Request) {
-	resp, err := zinc.Service.GetEmailByMessageId(chi.URLParam(r, "emailId"))
+	resp, err := zinc.Service.GetEmailById(chi.URLParam(r, "emailId"))
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
@@ -129,13 +129,12 @@ func GetEmailById(w http.ResponseWriter, r *http.Request) {
 			render.Render(w, r, ErrServiceUnavailable)
 			return
 		}
+		if strings.Contains(err.Error(), "id not found") {
+			render.Render(w, r, ErrNotFound)
+			return
+		}
 
 		render.Render(w, r, ErrInternalServer)
-		return
-	}
-
-	if len(resp.Emails) == 0 {
-		render.Render(w, r, ErrNotFound)
 		return
 	}
 
@@ -143,14 +142,18 @@ func GetEmailById(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, resp)
 }
 
-// ListAddresses returns a list of all email addresses in zinc.
-func ListAddresses(w http.ResponseWriter, r *http.Request) {
-	resp, err := zinc.Service.GetAllEmailAddresses()
+// GetEmailByMessageId returns an email by its message id.
+func GetEmailByMessageId(w http.ResponseWriter, r *http.Request) {
+	resp, err := zinc.Service.GetEmailByMessageId(chi.URLParam(r, "messageId"))
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
 		if strings.Contains(err.Error(), "connection refused") {
 			render.Render(w, r, ErrServiceUnavailable)
+			return
+		}
+		if strings.Contains(err.Error(), "id not found") {
+			render.Render(w, r, ErrNotFound)
 			return
 		}
 

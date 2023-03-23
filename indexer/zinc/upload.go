@@ -10,8 +10,7 @@ import (
 	"github.com/amoralesc/email-indexer/indexer/email"
 )
 
-// BulkEmails is used to upload emails in bulk
-// to the zinc server
+// BulkEmails is used to upload emails in bulk to the zinc server
 type BulkEmails struct {
 	Index   string        `json:"index"`
 	Records []email.Email `json:"records"`
@@ -89,6 +88,22 @@ func (service *ZincService) CreateIndex() error {
 				},
 				"body": {
 					"type": "text",
+					"index": true,
+					"store": false,
+					"sortable": false,
+					"aggregatable": false,
+					"highlightable": false
+				},
+				"is_read": {
+					"type": "boolean",
+					"index": true,
+					"store": false,
+					"sortable": false,
+					"aggregatable": false,
+					"highlightable": false
+				},
+				"is_starred": {
+					"type": "boolean",
 					"index": true,
 					"store": false,
 					"sortable": false,

@@ -21,8 +21,9 @@ type QueryPaginationSettings struct {
 
 // QuerySettings sets the parameters for the query.
 type QuerySettings struct {
-	Sort       string                   // the sorting parameters. Default: "-date"
-	Pagination *QueryPaginationSettings // the pagination parameters. Default: {Start: 0, Size: 100}
+	Sort        string                   // the sorting parameters. Default: "-date"
+	Pagination  *QueryPaginationSettings // the pagination parameters. Default: {Start: 0, Size: 100}
+	StarredOnly bool                     // if true, only starred emails will be returned. Default: false
 }
 
 // DateRange represents a range of dates (from, to) to filter the query.
@@ -55,7 +56,7 @@ func ValidateSortField(sortField string) error {
 }
 
 // NewQuerySettings creates new QuerySettings.
-func NewQuerySettings(sortBy string, page, pageSize int) (*QuerySettings, error) {
+func NewQuerySettings(sortBy string, page, pageSize int, starredOnly bool) (*QuerySettings, error) {
 	if sortBy == "" {
 		sortBy = defaultSortField
 	}
@@ -78,10 +79,11 @@ func NewQuerySettings(sortBy string, page, pageSize int) (*QuerySettings, error)
 		pageSize = defaultQuerySize
 	}
 
-	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: (page - 1) * pageSize, Size: pageSize}}, nil
+	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: (page - 1) * pageSize, Size: pageSize}, StarredOnly: starredOnly}, nil
 }
 
 // ParseQuerySortSettings parses the query sort settings to a string.
+// (only pagination and sort since starred is a filter)3
 func (settings *QuerySettings) ParseQuerySortSettings() string {
 	sortFields := strings.Split(settings.Sort, ",")
 	sortFieldsStr := make([]string, len(sortFields))
@@ -101,6 +103,14 @@ func (settings *QuerySettings) ParseQuerySettings() string {
 		settings.ParseQuerySortSettings(),
 		settings.Pagination.Start,
 		settings.Pagination.Size)
+}
+
+// ParseStarredFilter parses the starred filter to a string.
+func (settings *QuerySettings) ParseStarredFilter() string {
+	if settings.StarredOnly {
+		return `{ "term": { "is_starred": true } }`
+	}
+	return ""
 }
 
 func parseSearchParameter(searchType string, field string, value string) string {
