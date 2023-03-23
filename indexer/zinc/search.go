@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	esSearchPath = "/es/emails/_search"
-	apiPath      = "/api/emails"
+	esSearchPath    = "/es/emails/_search"
+	apiDocumentPath = "/api/emails/_doc"
 )
 
 // EmailResponse is the returned email format from the zinc server.
@@ -76,9 +76,9 @@ func (service *ZincService) parseQueryResponse(body []byte) (*QueryResponse, err
 }
 
 // sendQuery sends a query to the zinc server. It returns the emails that match the query.
-func (service *ZincService) sendQuery(query string, searchPath string) (*QueryResponse, error) {
+func (service *ZincService) sendQuery(query string) (*QueryResponse, error) {
 	// create the request
-	req, err := http.NewRequest("POST", service.Url+searchPath, bytes.NewBuffer([]byte(query)))
+	req, err := http.NewRequest("POST", service.Url+esSearchPath, bytes.NewBuffer([]byte(query)))
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (service *ZincService) GetAllEmails(settings *QuerySettings) (*QueryRespons
 
 	query := fmt.Sprintf(queryTemplate, filter, settings.ParseQuerySettings())
 
-	return service.sendQuery(query, esSearchPath)
+	return service.sendQuery(query)
 }
 
 // GetEmailsBySearchQuery returns all emails that match the given search query (paginated).
@@ -185,7 +185,7 @@ func (service *ZincService) GetEmailsBySearchQuery(searchQuery *SearchQuery, set
 
 	query := fmt.Sprintf(queryTemplate, strings.Join(mustParameters, ", "), mustNotParameters, strings.Join(filterParameters, ", "), settings.ParseQuerySettings())
 
-	return service.sendQuery(query, esSearchPath)
+	return service.sendQuery(query)
 }
 
 // GetEmailsByQueryString returns all emails that match the given query string (paginated).
@@ -216,7 +216,7 @@ func (service *ZincService) GetEmailsByQueryString(queryString string, settings 
 
 	query := fmt.Sprintf(queryTemplate, queryString, filter, settings.ParseQuerySettings())
 
-	return service.sendQuery(query, esSearchPath)
+	return service.sendQuery(query)
 }
 
 // GetEmailByMessageId returns the email that has the given message id.
@@ -233,7 +233,7 @@ func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailRespons
 	`
 	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
 
-	queryResponse, err := service.sendQuery(query, esSearchPath)
+	queryResponse, err := service.sendQuery(query)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +247,7 @@ func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailRespons
 // GetEmailById returns the email that has the given _id (zinc id).
 func (service *ZincService) GetEmailById(id string) (*EmailResponse, error) {
 	// create the request
-	req, err := http.NewRequest("GET", service.Url+apiPath+"/_doc/"+id, nil)
+	req, err := http.NewRequest("GET", service.Url+apiDocumentPath+"/"+id, nil)
 	if err != nil {
 		return nil, err
 	}

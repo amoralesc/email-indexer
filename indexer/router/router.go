@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/amoralesc/email-indexer/indexer/email"
 	"github.com/amoralesc/email-indexer/indexer/zinc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -28,6 +29,8 @@ func NewRouter() http.Handler {
 		r.With(loadQuerySettings).Get("/query", QueryEmails)
 		r.Route("/{emailId}", func(r chi.Router) {
 			r.Get("/", GetEmailById)
+			r.Put("/", UpdateEmail)
+			r.Delete("/", DeleteEmail)
 		})
 		r.Route("/message_id/{messageId}", func(r chi.Router) {
 			r.Get("/", GetEmailByMessageId)
@@ -163,4 +166,63 @@ func GetEmailByMessageId(w http.ResponseWriter, r *http.Request) {
 
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, resp)
+}
+
+// UpdateEmail updates an email by its id.
+func UpdateEmail(w http.ResponseWriter, r *http.Request) {
+	var email *email.Email
+
+	// get the email from the body
+	if err := render.DecodeJSON(r.Body, &email); err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if err.Error() == "EOF" {
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("email can't be empty")))
+			return
+		}
+
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	resp, err := zinc.Service.UpdateEmail(chi.URLParam(r, "emailId"), email)
+
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if strings.Contains(err.Error(), "connection refused") {
+			render.Render(w, r, ErrServiceUnavailable)
+			return
+		}
+		if strings.Contains(err.Error(), "id not found") {
+			render.Render(w, r, ErrNotFound)
+			return
+		}
+
+		render.Render(w, r, ErrInternalServer)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, resp)
+}
+
+// DeleteEmail deletes an email by its id.
+func DeleteEmail(w http.ResponseWriter, r *http.Request) {
+	err := zinc.Service.DeleteEmail(chi.URLParam(r, "emailId"))
+
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if strings.Contains(err.Error(), "connection refused") {
+			render.Render(w, r, ErrServiceUnavailable)
+			return
+		}
+		if strings.Contains(err.Error(), "id not found") {
+			render.Render(w, r, ErrNotFound)
+			return
+		}
+
+		render.Render(w, r, ErrInternalServer)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
 }
