@@ -11,14 +11,30 @@ import { RouterView } from 'vue-router'
   </header>
 
   <RouterView />
+
+  <footer>
+    <p>Email Indexer</p>
+  </footer>
 </template>
 
 <style scoped>
 header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0rem 1rem;
+  margin-bottom: 1rem;
+}
+
+footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.75rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
 }
 
 .title {

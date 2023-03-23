@@ -7,30 +7,11 @@ import DeleteIcon from './icons/IconDelete.vue'
 import EmailReadIcon from './icons/IconEmailRead.vue'
 import EmailUnreadIcon from './icons/IconEmailUnread.vue'
 
-import type { Email } from '@/models/email'
+import type Email from '@/models/email'
 
 defineProps<{
   email: Email
 }>()
-
-defineEmits<{
-  open: () => void
-  toggleSelect: () => void
-  toggleStar: () => void
-  delete: () => void
-  toggleRead: () => void
-}>()
-
-const getFormattedDate = (date: Date) => {
-  const day = date.getDate()
-  const month = date.getMonth() + 1
-  const year = date.getFullYear()
-
-  const formattedDay = day < 10 ? `0${day}` : day
-  const formattedMonth = month < 10 ? `0${month}` : month
-
-  return `${formattedDay}/${formattedMonth}/${year}`
-}
 </script>
 
 <template>
@@ -58,7 +39,7 @@ const getFormattedDate = (date: Date) => {
     <div class="email-item__subject">{{ email.subject }}</div>
     <div class="email-item__from">{{ email.from }}</div>
     <div class="email-item__to">{{ email.to.join(', ') }}</div>
-    <div class="email-item__date">{{ getFormattedDate(email.date) }}</div>
+    <div class="email-item__date">{{ email.getFormattedDate() }}</div>
 
     <div class="email-item__hover_actions">
       <i class="email-item__delete" @click="$emit('delete')">
@@ -128,6 +109,10 @@ i {
 }
 
 i:hover {
+  color: var(--color-primary);
+}
+
+.email-item:hover i:hover {
   color: var(--color-primary);
 }
 

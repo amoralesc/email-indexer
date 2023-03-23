@@ -5,9 +5,18 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
+      path: '/emails',
       name: 'home',
       component: ListView
+    },
+    {
+      path: '/emails/:id',
+      name: 'email',
+      component: () => import('../views/EmailView.vue')
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/emails'
     }
   ]
 })

@@ -3,23 +3,24 @@ import EmailItem from '@/components/EmailItem.vue'
 import TabBar from '@/components/TabBar.vue'
 import NavigationControls from '@/components/NavigationControls.vue'
 
-import CheckboxIcon from '@/components/icons/IconCheckbox.vue'
-import ChecboxCheckedIcon from '@/components/icons/IconCheckboxChecked.vue'
 import InboxIcon from '@/components/icons/IconInbox.vue'
 import InboxFilledIcon from '@/components/icons/IconInboxFilled.vue'
 import StarIcon from '@/components/icons/IconStar.vue'
 import StarFilledIcon from '@/components/icons/IconStarFilled.vue'
+import CheckboxIcon from '@/components/icons/IconCheckbox.vue'
+import ChecboxCheckedIcon from '@/components/icons/IconCheckboxChecked.vue'
 import EmailReadIcon from '@/components/icons/IconEmailRead.vue'
 import EmailUnreadIcon from '@/components/icons/IconEmailUnread.vue'
 import DeleteIcon from '@/components/icons/IconDelete.vue'
 
 import type { Tab } from '@/models/tab'
-
 import { useEmailsStore } from '@/stores/emails'
 import { useTabStore } from '@/stores/tab'
 
 const emailsStore = useEmailsStore()
 const tabStore = useTabStore()
+// router is already imported in main.ts, so to
+// access it here we need to use
 
 const tabs: Tab[] = [
   {
@@ -110,19 +111,19 @@ const getTabIsRead = () => {
   <div class="list-view">
     <div class="list-view__header">
       <div class="list-view__actions">
-        <i class="list-view__checkbox" @click="onToggleSelected()">
+        <i @click="onToggleSelected()">
           <CheckboxIcon v-if="!getTabIsSelected()" />
           <ChecboxCheckedIcon v-else />
         </i>
-        <i class="list-view__delete" @click="onDeleteSelected()">
+        <i @click="onDeleteSelected()">
           <DeleteIcon />
         </i>
-        <i class="list-view__read" @click="onToggleReadSelected()">
+        <i @click="onToggleReadSelected()">
           <EmailReadIcon v-if="!getTabIsRead()" />
           <EmailUnreadIcon v-else />
         </i>
       </div>
-      <NavigationControls :is-previous-disabled="false" :is-next-disabled="false" label="1-50" />
+      <NavigationControls :is-previous-disabled="true" :is-next-disabled="false" label="1-50" />
     </div>
 
     <TabBar
@@ -148,11 +149,13 @@ const getTabIsRead = () => {
 
 <style scoped>
 .list-view {
-  height: 100vh;
+  height: 84vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 5rem;
+  padding-bottom: 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--color-background-2);
 }
 
 .list-view__header {
@@ -198,7 +201,7 @@ i:hover {
   width: 0.75rem;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-background);
+  background-color: var(--color-background-2);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-text);
