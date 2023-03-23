@@ -63,4 +63,12 @@ i {
 i:hover {
   color: var(--color-primary);
 }
+
+.navigation__previous--disabled,
+.navigation__next--disabled,
+i:hover.navigation__previous--disabled,
+i:hover.navigation__next--disabled {
+  color: var(--color-background-mute);
+  cursor: not-allowed;
+}
 </style>
