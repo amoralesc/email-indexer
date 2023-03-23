@@ -18,7 +18,7 @@ const (
 // EmailResponse is the returned email format from the zinc server.
 type EmailResponse struct {
 	Id        string    `json:"id"`
-	MessageId string    `json:"message_id"`
+	MessageId string    `json:"messageId"`
 	Date      time.Time `json:"date"`
 	From      string    `json:"from"`
 	To        []string  `json:"to"`
@@ -26,8 +26,8 @@ type EmailResponse struct {
 	Bcc       []string  `json:"bcc"`
 	Subject   string    `json:"subject"`
 	Body      string    `json:"body"`
-	IsRead    bool      `json:"is_read"`
-	IsStarred bool      `json:"is_starred"`
+	IsRead    bool      `json:"isRead"`
+	IsStarred bool      `json:"isStarred"`
 }
 
 // QueryResponse is the response from the zinc server to a query.

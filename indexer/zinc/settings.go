@@ -36,14 +36,14 @@ type DateRange struct {
 // The query will only return emails that match all the fields.
 // If a field is empty, it will be ignored.
 type SearchQuery struct {
-	From            string    `json:"from"`             // from address (exact match)
-	To              []string  `json:"to"`               // to addresses (exact match to all)
-	Cc              []string  `json:"cc"`               // cc addresses (exact match to all)
-	Bcc             []string  `json:"bcc"`              // bcc addresses (exact match to all)
-	SubjectIncludes string    `json:"subject_includes"` // subject (has text)
-	BodyIncludes    string    `json:"body_includes"`    // body includes (has text)
-	BodyExcludes    string    `json:"body_excludes"`    // body excludes (does not have text)
-	Date            DateRange `json:"date"`             // the date range to filter the query
+	From            string    `json:"from"`            // from address (exact match)
+	To              []string  `json:"to"`              // to addresses (exact match to all)
+	Cc              []string  `json:"cc"`              // cc addresses (exact match to all)
+	Bcc             []string  `json:"bcc"`             // bcc addresses (exact match to all)
+	SubjectIncludes string    `json:"subjectIncludes"` // subject (has text)
+	BodyIncludes    string    `json:"bodyIncludes"`    // body includes (has text)
+	BodyExcludes    string    `json:"bodyExcludes"`    // body excludes (does not have text)
+	Date            DateRange `json:"date"`            // the date range to filter the query
 }
 
 // ValidateSortField validates a sort field with the format: (+|-)(from|to|cc|bcc|date)
@@ -108,7 +108,7 @@ func (settings *QuerySettings) ParseQuerySettings() string {
 // ParseStarredFilter parses the starred filter to a string.
 func (settings *QuerySettings) ParseStarredFilter() string {
 	if settings.StarredOnly {
-		return `{ "term": { "is_starred": true } }`
+		return `{ "term": { "isStarred": true } }`
 	}
 	return ""
 }

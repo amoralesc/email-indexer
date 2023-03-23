@@ -29,7 +29,7 @@ func (service *ZincService) CreateIndex() error {
 		"storage_type": "disk",
 		"mappings": {
 			"properties": {
-				"message_id": {
+				"messageId": {
 					"type": "keyword",
 					"index": true,
 					"store": true,
@@ -94,7 +94,7 @@ func (service *ZincService) CreateIndex() error {
 					"aggregatable": false,
 					"highlightable": false
 				},
-				"is_read": {
+				"isRead": {
 					"type": "boolean",
 					"index": true,
 					"store": false,
@@ -102,7 +102,7 @@ func (service *ZincService) CreateIndex() error {
 					"aggregatable": false,
 					"highlightable": false
 				},
-				"is_starred": {
+				"isStarred": {
 					"type": "boolean",
 					"index": true,
 					"store": false,

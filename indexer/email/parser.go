@@ -9,7 +9,7 @@ import (
 
 // Email represents an email message that can be JSON encoded.
 type Email struct {
-	MessageID string    `json:"message_id"`
+	MessageId string    `json:"messageId"`
 	Date      time.Time `json:"date"`
 	From      string    `json:"from"`
 	To        []string  `json:"to"`
@@ -17,8 +17,8 @@ type Email struct {
 	Bcc       []string  `json:"bcc"`
 	Subject   string    `json:"subject"`
 	Body      string    `json:"body"`
-	IsRead    bool      `json:"is_read"`
-	IsStarred bool      `json:"is_starred"`
+	IsRead    bool      `json:"isRead"`
+	IsStarred bool      `json:"isStarred"`
 }
 
 // EmailFromFile parses an email file located at path to an Email struct for easy JSON encoding.
@@ -38,7 +38,7 @@ func EmailFromFile(path string) (*Email, error) {
 
 	// convert the msg to a struct
 	emailObj := &Email{
-		MessageID: msg.Header.Get("Message-ID"),
+		MessageId: msg.Header.Get("Message-ID"),
 		From:      msg.Header.Get("From"),
 		Subject:   msg.Header.Get("Subject"),
 		IsRead:    false,

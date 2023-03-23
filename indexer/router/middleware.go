@@ -17,9 +17,9 @@ func loadQuerySettings(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get the page and page size
 		page := r.URL.Query().Get("page")
-		pageSize := r.URL.Query().Get("page_size")
-		sortBy := r.URL.Query().Get("sort_by")
-		starredOnly := r.URL.Query().Get("starred_only")
+		pageSize := r.URL.Query().Get("pageSize")
+		sortBy := r.URL.Query().Get("sortBy")
+		starredOnly := r.URL.Query().Get("starredOnly")
 
 		if page == "" {
 			page = "1"
@@ -41,14 +41,14 @@ func loadQuerySettings(next http.Handler) http.Handler {
 		pageSizeInt, err := strconv.Atoi(pageSize)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
-			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("page_size should be an integer")))
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("pageSize should be an integer")))
 			return
 		}
 		// cast starredOnly to bool
 		starredOnlyBool, err := strconv.ParseBool(starredOnly)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
-			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("starred_only should be a boolean")))
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("starredOnly should be a boolean")))
 			return
 		}
 
