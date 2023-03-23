@@ -1,26 +1,23 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import type { Email } from '@/models/email'
+import Email from '@/models/email'
 
-const dummyEmail: Email = {
-  id: '1',
-  message_id: '1',
-  from: 'John Doe',
-  to: ['Jane Doe'],
-  cc: [],
-  bcc: [],
-  subject: 'Hello',
-  body: 'Hello Jane, how are you?',
-  date: new Date(),
-  read: false,
-  starred: false,
-  selected: false
-}
+const dummyEmail = new Email(
+  '1',
+  '1',
+  new Date(),
+  'John Doe',
+  ['Jane Doe'],
+  ['Jane Doe'],
+  ['Jane Doe'],
+  'Lorem ipsum dolor sit amet',
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl.',
+  false,
+  false
+)
 
 const initialEmails: Email[] = [dummyEmail]
-
-// generate 49 dummy emails for testing
 for (let i = 2; i < 50; i++) {
   initialEmails.push({
     ...dummyEmail,
@@ -37,6 +34,10 @@ export const useEmailsStore = defineStore('emails', () => {
   const isSelectedStarred = ref(false)
   const isReadAll = ref(false)
   const isReadStarred = ref(false)
+
+  const getEmailById = (id: string) => {
+    return all.value.find((email) => email.id === id)
+  }
 
   function toggleStarredOne(id: string) {
     all.value.concat(starred.value).forEach((email) => {
@@ -129,6 +130,7 @@ export const useEmailsStore = defineStore('emails', () => {
     isSelectedStarred,
     isReadAll,
     isReadStarred,
+    getEmailById,
     toggleStarredOne,
     toggleReadOne,
     toggleSelectedOneOfAll,
