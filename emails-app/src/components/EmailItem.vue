@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type Email from '@/models/email'
+
 import CheckboxIcon from './icons/IconCheckbox.vue'
 import ChecboxCheckedIcon from './icons/IconCheckboxChecked.vue'
 import StarIcon from './icons/IconStar.vue'
@@ -7,10 +9,16 @@ import DeleteIcon from './icons/IconDelete.vue'
 import EmailReadIcon from './icons/IconEmailRead.vue'
 import EmailUnreadIcon from './icons/IconEmailUnread.vue'
 
-import type Email from '@/models/email'
-
 defineProps<{
   email: Email
+}>()
+
+defineEmits<{
+  (event: 'open'): void
+  (event: 'toggleSelect'): void
+  (event: 'toggleStar'): void
+  (event: 'delete'): void
+  (event: 'toggleRead'): void
 }>()
 </script>
 
@@ -26,11 +34,11 @@ defineProps<{
     @click="$emit('open')"
   >
     <div class="email-item__actions">
-      <i class="email-item__checkbox" @click="$emit('toggleSelect')">
+      <i class="email-item__checkbox" @click="$emit('toggleSelect')" v-on:click.stop>
         <CheckboxIcon v-if="!email.selected" />
         <ChecboxCheckedIcon v-else />
       </i>
-      <i class="email-item__star" @click="$emit('toggleStar')">
+      <i class="email-item__star" @click="$emit('toggleStar')" v-on:click.stop>
         <StarIcon v-if="!email.starred" />
         <StarFilledIcon v-else />
       </i>
@@ -42,10 +50,10 @@ defineProps<{
     <div class="email-item__date">{{ email.getFormattedDate() }}</div>
 
     <div class="email-item__hover_actions">
-      <i class="email-item__delete" @click="$emit('delete')">
+      <i class="email-item__delete" @click="$emit('delete')" v-on:click.stop>
         <DeleteIcon />
       </i>
-      <i class="email-item__read" @click="$emit('toggleRead')">
+      <i class="email-item__read" @click="$emit('toggleRead')" v-on:click.stop>
         <EmailUnreadIcon v-if="email.read" />
         <EmailReadIcon v-else />
       </i>
@@ -161,5 +169,19 @@ i:hover {
 
 .email-item:hover .email-item__date {
   opacity: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 0.75rem;
+}
+::-webkit-scrollbar-track {
+  background-color: var(--color-background-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-text);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 </style>

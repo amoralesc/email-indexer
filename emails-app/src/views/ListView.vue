@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+import { useEmailsStore } from '@/stores/emails'
+import { useTabStore } from '@/stores/tab'
+import type { Tab } from '@/models/tab'
+
 import EmailItem from '@/components/EmailItem.vue'
 import TabBar from '@/components/TabBar.vue'
 import NavigationControls from '@/components/NavigationControls.vue'
@@ -13,14 +19,9 @@ import EmailReadIcon from '@/components/icons/IconEmailRead.vue'
 import EmailUnreadIcon from '@/components/icons/IconEmailUnread.vue'
 import DeleteIcon from '@/components/icons/IconDelete.vue'
 
-import type { Tab } from '@/models/tab'
-import { useEmailsStore } from '@/stores/emails'
-import { useTabStore } from '@/stores/tab'
-
+const router = useRouter()
 const emailsStore = useEmailsStore()
 const tabStore = useTabStore()
-// router is already imported in main.ts, so to
-// access it here we need to use
 
 const tabs: Tab[] = [
   {
@@ -37,6 +38,9 @@ const tabs: Tab[] = [
   }
 ]
 
+const onOpen = (emailId: string) => {
+  router.push({ name: 'email', params: { id: emailId } })
+}
 const onTabSelect = (tabName: string) => {
   tabStore.setTab(tabName)
 }
@@ -138,6 +142,7 @@ const getTabIsRead = () => {
         v-for="email in getTabEmails()"
         :key="email.id"
         :email="email"
+        @open="onOpen(email.id)"
         @toggleSelect="onToggleSelect(email.id)"
         @toggleRead="onToggleRead(email.id)"
         @toggleStar="onToggleStar(email.id)"
