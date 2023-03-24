@@ -10,6 +10,7 @@ import (
 	"github.com/amoralesc/email-indexer/indexer/zinc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 )
 
@@ -22,6 +23,11 @@ func NewRouter() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
+	// allow cross-origin requests
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+	}))
 
 	r.Route("/api/emails", func(r chi.Router) {
 		r.With(loadQuerySettings).Get("/", ListEmails)
