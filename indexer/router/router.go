@@ -25,6 +25,7 @@ func NewRouter() http.Handler {
 
 	r.Route("/api/emails", func(r chi.Router) {
 		r.With(loadQuerySettings).Get("/", ListEmails)
+		r.Put("/", UpdateEmails)
 		r.With(loadQuerySettings).Post("/search", SearchEmails)
 		r.With(loadQuerySettings).Get("/query", QueryEmails)
 		r.Route("/{emailId}", func(r chi.Router) {
@@ -44,6 +45,39 @@ func NewRouter() http.Handler {
 func ListEmails(w http.ResponseWriter, r *http.Request) {
 	querySettings := r.Context().Value("querySettings").(*zinc.QuerySettings)
 	resp, err := zinc.Service.GetAllEmails(querySettings)
+
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if strings.Contains(err.Error(), "connection refused") {
+			render.Render(w, r, ErrServiceUnavailable)
+			return
+		}
+
+		render.Render(w, r, ErrInternalServer)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, resp)
+}
+
+// UpdateEmails updates multiple emails.
+func UpdateEmails(w http.ResponseWriter, r *http.Request) {
+	var emails []*zinc.EmailWithId
+
+	// get the emails from the body
+	if err := render.DecodeJSON(r.Body, &emails); err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if err.Error() == "EOF" {
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("emails must contain at least one item")))
+			return
+		}
+
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	resp, err := zinc.Service.UpdateEmails(emails)
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)

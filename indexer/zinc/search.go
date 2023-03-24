@@ -15,9 +15,9 @@ const (
 	apiDocumentPath = "/api/emails/_doc"
 )
 
-// EmailResponse is the returned email format from the zinc server.
-type EmailResponse struct {
-	Id        string    `json:"id"`
+// EmailWithId is the returned email format from the zinc server.
+type EmailWithId struct {
+	Id        string    `json:"_id"`
 	MessageId string    `json:"messageId"`
 	Date      time.Time `json:"date"`
 	From      string    `json:"from"`
@@ -32,9 +32,9 @@ type EmailResponse struct {
 
 // QueryResponse is the response from the zinc server to a query.
 type QueryResponse struct {
-	Total  int             `json:"total"`  // Total number of emails that match the query (not the number of emails returned)
-	Took   int             `json:"took"`   // Time it took to execute the query
-	Emails []EmailResponse `json:"emails"` // Emails that match the query (paginated)
+	Total  int           `json:"total"`  // Total number of emails that match the query (not the number of emails returned)
+	Took   int           `json:"took"`   // Time it took to execute the query
+	Emails []EmailWithId `json:"emails"` // Emails that match the query (paginated)
 }
 
 // parseQueryResponse parses the body response from the zinc server
@@ -48,8 +48,8 @@ func (service *ZincService) parseQueryResponse(body []byte) (*QueryResponse, err
 				Value int `json:"value"`
 			} `json:"total"`
 			Hits []struct {
-				Id     string        `json:"_id"`
-				Source EmailResponse `json:"_source"`
+				Id     string      `json:"_id"`
+				Source EmailWithId `json:"_source"`
 			} `json:"hits"`
 		} `json:"hits"`
 	}
@@ -59,8 +59,8 @@ func (service *ZincService) parseQueryResponse(body []byte) (*QueryResponse, err
 	}
 
 	// extract the emails
-	emails := func() []EmailResponse {
-		emails := make([]EmailResponse, len(resp.Hits.Hits))
+	emails := func() []EmailWithId {
+		emails := make([]EmailWithId, len(resp.Hits.Hits))
 		for i, hit := range resp.Hits.Hits {
 			emails[i] = hit.Source
 			emails[i].Id = hit.Id
@@ -220,7 +220,7 @@ func (service *ZincService) GetEmailsByQueryString(queryString string, settings 
 }
 
 // GetEmailByMessageId returns the email that has the given message id.
-func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailResponse, error) {
+func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailWithId, error) {
 	// create the query template
 	const queryTemplate = `
 	{
@@ -245,7 +245,7 @@ func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailRespons
 }
 
 // GetEmailById returns the email that has the given _id (zinc id).
-func (service *ZincService) GetEmailById(id string) (*EmailResponse, error) {
+func (service *ZincService) GetEmailById(id string) (*EmailWithId, error) {
 	// create the request
 	req, err := http.NewRequest("GET", service.Url+apiDocumentPath+"/"+id, nil)
 	if err != nil {
@@ -267,8 +267,8 @@ func (service *ZincService) GetEmailById(id string) (*EmailResponse, error) {
 
 	// parse the response
 	var respStruct struct {
-		Id     string        `json:"_id"`
-		Source EmailResponse `json:"_source"`
+		Id     string      `json:"_id"`
+		Source EmailWithId `json:"_source"`
 	}
 
 	err = json.Unmarshal(body, &respStruct)
