@@ -43,7 +43,7 @@ type SearchQuery struct {
 	SubjectIncludes string    `json:"subjectIncludes"` // subject (has text)
 	BodyIncludes    string    `json:"bodyIncludes"`    // body includes (has text)
 	BodyExcludes    string    `json:"bodyExcludes"`    // body excludes (does not have text)
-	Date            DateRange `json:"date"`            // the date range to filter the query
+	DateRange       DateRange `json:"dateRange"`       // the date range to filter the query
 }
 
 // ValidateSortField validates a sort field with the format: (+|-)(from|to|cc|bcc|date)

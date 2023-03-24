@@ -178,7 +178,7 @@ func (service *ZincService) GetEmailsBySearchQuery(searchQuery *SearchQuery, set
 	}
 	// parse the filter parameters
 	var filterParameters []string
-	filterParameters = append(filterParameters, parseDateRangeParameter(searchQuery.Date))
+	filterParameters = append(filterParameters, parseDateRangeParameter(searchQuery.DateRange))
 	if settings.StarredOnly {
 		filterParameters = append(filterParameters, settings.ParseStarredFilter())
 	}

@@ -25,7 +25,7 @@ func NewRouter() http.Handler {
 
 	r.Route("/api/emails", func(r chi.Router) {
 		r.With(loadQuerySettings).Get("/", ListEmails)
-		r.With(loadQuerySettings).Get("/search", SearchEmails)
+		r.With(loadQuerySettings).Post("/search", SearchEmails)
 		r.With(loadQuerySettings).Get("/query", QueryEmails)
 		r.Route("/{emailId}", func(r chi.Router) {
 			r.Get("/", GetEmailById)
