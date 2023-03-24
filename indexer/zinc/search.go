@@ -231,14 +231,14 @@ func (service *ZincService) GetEmailByMessageId(messageId string) (*EmailWithId,
 		}
 	}
 	`
-	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("message_id", messageId))
+	query := fmt.Sprintf(queryTemplate, parseExactMatchParameter("messageId", messageId))
 
 	queryResponse, err := service.sendQuery(query)
 	if err != nil {
 		return nil, err
 	}
 	if len(queryResponse.Emails) == 0 {
-		return nil, fmt.Errorf("messsage id not found %v", messageId)
+		return nil, fmt.Errorf("message id not found %v", messageId)
 	}
 
 	return &queryResponse.Emails[0], nil

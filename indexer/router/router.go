@@ -28,6 +28,9 @@ func NewRouter() http.Handler {
 		r.Put("/", UpdateEmails)
 		r.With(loadQuerySettings).Post("/search", SearchEmails)
 		r.With(loadQuerySettings).Get("/query", QueryEmails)
+		r.Route("/bulk/{emailIds}", func(r chi.Router) {
+			r.Delete("/", DeleteEmails)
+		})
 		r.Route("/{emailId}", func(r chi.Router) {
 			r.Get("/", GetEmailById)
 			r.Put("/", UpdateEmail)
@@ -242,6 +245,29 @@ func UpdateEmail(w http.ResponseWriter, r *http.Request) {
 // DeleteEmail deletes an email by its id.
 func DeleteEmail(w http.ResponseWriter, r *http.Request) {
 	err := zinc.Service.DeleteEmail(chi.URLParam(r, "emailId"))
+
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		if strings.Contains(err.Error(), "connection refused") {
+			render.Render(w, r, ErrServiceUnavailable)
+			return
+		}
+		if strings.Contains(err.Error(), "id not found") {
+			render.Render(w, r, ErrNotFound)
+			return
+		}
+
+		render.Render(w, r, ErrInternalServer)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+}
+
+// DeleteEmails deletes emails by their ids.
+func DeleteEmails(w http.ResponseWriter, r *http.Request) {
+	ids := strings.Split(chi.URLParam(r, "emailIds"), ",")
+	err := zinc.Service.DeleteEmails(ids)
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
