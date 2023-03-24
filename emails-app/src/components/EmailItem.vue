@@ -26,20 +26,20 @@ defineEmits<{
   <div
     class="email-item"
     :class="{
-      'email-item--selected': email.selected,
-      'email-item--starred': email.starred,
-      'email-item--read': email.read,
-      'email-item--unread': !email.read
+      'email-item--selected': email.isSelected,
+      'email-item--starred': email.isStarred,
+      'email-item--read': email.isRead,
+      'email-item--unread': !email.isRead
     }"
     @click="$emit('open')"
   >
     <div class="email-item__actions">
       <i class="email-item__checkbox" @click="$emit('toggleSelect')" v-on:click.stop>
-        <CheckboxIcon v-if="!email.selected" />
+        <CheckboxIcon v-if="!email.isSelected" />
         <ChecboxCheckedIcon v-else />
       </i>
       <i class="email-item__star" @click="$emit('toggleStar')" v-on:click.stop>
-        <StarIcon v-if="!email.starred" />
+        <StarIcon v-if="!email.isStarred" />
         <StarFilledIcon v-else />
       </i>
     </div>
@@ -54,7 +54,7 @@ defineEmits<{
         <DeleteIcon />
       </i>
       <i class="email-item__read" @click="$emit('toggleRead')" v-on:click.stop>
-        <EmailUnreadIcon v-if="email.read" />
+        <EmailUnreadIcon v-if="email.isRead" />
         <EmailReadIcon v-else />
       </i>
     </div>

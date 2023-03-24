@@ -1,6 +1,6 @@
 class Email {
   id: string
-  message_id: string
+  messageId: string
   date: Date
   from: string
   to: string[]
@@ -8,13 +8,13 @@ class Email {
   bcc: string[]
   subject: string
   body: string
-  read: boolean
-  starred: boolean
-  selected: boolean
+  isRead: boolean
+  isStarred: boolean
+  isSelected: boolean
 
   constructor(
     id: string,
-    message_id: string,
+    messageId: string,
     date: Date,
     from: string,
     to: string[],
@@ -22,12 +22,12 @@ class Email {
     bcc: string[],
     subject: string,
     body: string,
-    read: boolean,
-    starred: boolean,
-    selected: boolean = false
+    isRead: boolean,
+    isStarred: boolean,
+    isSelected: boolean = false
   ) {
     this.id = id
-    this.message_id = message_id
+    this.messageId = messageId
     this.date = date
     this.from = from
     this.to = to
@@ -35,9 +35,9 @@ class Email {
     this.bcc = bcc
     this.subject = subject
     this.body = body
-    this.read = read
-    this.starred = starred
-    this.selected = selected
+    this.isRead = isRead
+    this.isStarred = isStarred
+    this.isSelected = isSelected
   }
 
   getFormattedDate = () => {
@@ -52,5 +52,4 @@ class Email {
   }
 }
 
-// export class
 export default Email

@@ -44,11 +44,11 @@ const onToggleStar = () => {
           <DeleteIcon />
         </i>
         <i @click="onToggleRead()">
-          <EmailReadIcon v-if="!email.read" />
+          <EmailReadIcon v-if="!email.isRead" />
           <EmailUnreadIcon v-else />
         </i>
         <i @click="onToggleStar()">
-          <StarIcon v-if="!email.starred" />
+          <StarIcon v-if="!email.isStarred" />
           <StarFilledIcon v-else />
         </i>
       </div>

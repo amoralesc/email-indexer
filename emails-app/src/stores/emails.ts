@@ -22,14 +22,16 @@ for (let i = 2; i < 50; i++) {
   initialEmails.push({
     ...dummyEmail,
     id: i.toString(),
-    message_id: i.toString(),
-    starred: i % 2 === 0
+    messageId: i.toString(),
+    isStarred: i % 2 === 0
   })
 }
 
 export const useEmailsStore = defineStore('emails', () => {
   const all = ref(initialEmails)
-  const starred = ref(initialEmails.filter((email) => email.starred).map((email) => ({ ...email })))
+  const starred = ref(
+    initialEmails.filter((email) => email.isStarred).map((email) => ({ ...email }))
+  )
   const isSelectedAll = ref(false)
   const isSelectedStarred = ref(false)
   const isReadAll = ref(false)
@@ -42,21 +44,21 @@ export const useEmailsStore = defineStore('emails', () => {
   function toggleStarredOne(id: string) {
     all.value.concat(starred.value).forEach((email) => {
       if (email.id === id) {
-        email.starred = !email.starred
+        email.isStarred = !email.isStarred
       }
     })
-    starred.value = all.value.filter((email) => email.starred)
+    starred.value = all.value.filter((email) => email.isStarred)
   }
 
   function toggleReadOne(id: string) {
     all.value.forEach((email) => {
       if (email.id === id) {
-        email.read = !email.read
+        email.isRead = !email.isRead
       }
     })
     starred.value.forEach((email) => {
       if (email.id === id) {
-        email.read = !email.read
+        email.isRead = !email.isRead
       }
     })
   }
@@ -64,35 +66,35 @@ export const useEmailsStore = defineStore('emails', () => {
   function toggleSelectedOneOfAll(id: string) {
     const email = all.value.find((email) => email.id === id)
     if (email) {
-      email.selected = !email.selected
+      email.isSelected = !email.isSelected
     }
   }
 
   function toggleSelectedOneOfStarred(id: string) {
     const email = starred.value.find((email) => email.id === id)
     if (email) {
-      email.selected = !email.selected
+      email.isSelected = !email.isSelected
     }
   }
 
   function toggleSelectedAll() {
     all.value.forEach((email) => {
-      email.selected = !isSelectedAll.value
+      email.isSelected = !isSelectedAll.value
     })
     isSelectedAll.value = !isSelectedAll.value
   }
 
   function toggleSelectedStarred() {
     starred.value.forEach((email) => {
-      email.selected = !isSelectedStarred.value
+      email.isSelected = !isSelectedStarred.value
     })
     isSelectedStarred.value = !isSelectedStarred.value
   }
 
   function toggleReadSelectedAll() {
     all.value.forEach((email) => {
-      if (email.selected) {
-        email.read = !isReadAll.value
+      if (email.isSelected) {
+        email.isRead = !isReadAll.value
       }
     })
     isReadAll.value = !isReadAll.value
@@ -100,8 +102,8 @@ export const useEmailsStore = defineStore('emails', () => {
 
   function toggleReadSelectedStarred() {
     starred.value.forEach((email) => {
-      if (email.selected) {
-        email.read = !isReadStarred.value
+      if (email.isSelected) {
+        email.isRead = !isReadStarred.value
       }
     })
     isReadStarred.value = !isReadStarred.value
@@ -119,13 +121,13 @@ export const useEmailsStore = defineStore('emails', () => {
   }
 
   function deleteSelectedAll() {
-    all.value = all.value.filter((email) => !email.selected)
-    starred.value = all.value.filter((email) => email.starred)
+    all.value = all.value.filter((email) => !email.isSelected)
+    starred.value = all.value.filter((email) => email.isStarred)
   }
 
   function deleteSelectedStarred() {
-    starred.value = starred.value.filter((email) => !email.selected)
-    all.value = all.value.filter((email) => !email.starred)
+    starred.value = starred.value.filter((email) => !email.isSelected)
+    all.value = all.value.filter((email) => !email.isStarred)
   }
 
   return {
