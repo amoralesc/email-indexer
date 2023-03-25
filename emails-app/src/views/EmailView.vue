@@ -17,19 +17,20 @@ const emailId = route.params.id as string
 const email = emailsStore.getEmailById(emailId)
 
 const onBack = () => {
-  router.push({ name: 'home' })
-}
-const onDelete = () => {
-  if (confirm('Are you sure you want to delete this email? This action cannot be undone.')) {
-    emailsStore.deleteOne(emailId)
-    router.push({ name: 'home' })
-  }
+  // navigate back in history
+  router.go(-1)
 }
 const onToggleRead = () => {
   emailsStore.toggleReadOne(emailId)
 }
 const onToggleStar = () => {
   emailsStore.toggleStarredOne(emailId)
+}
+const onDelete = () => {
+  if (confirm('Are you sure you want to delete this email? This action cannot be undone.')) {
+    emailsStore.deleteOne(emailId)
+    router.push({ name: 'home' })
+  }
 }
 </script>
 

@@ -2,152 +2,270 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import Email from '@/models/email'
+import type { Response } from '@/models/response'
+import Settings from '@/models/settings'
 
-const dummyEmail = new Email(
-  '1',
-  '1',
-  new Date(),
-  'John Doe',
-  ['Jane Doe'],
-  ['Jane Doe'],
-  ['Jane Doe'],
-  'Lorem ipsum dolor sit amet',
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl.',
-  false,
-  false
-)
+import service from '@/services/emails'
 
-const initialEmails: Email[] = [dummyEmail]
-for (let i = 2; i < 50; i++) {
-  initialEmails.push({
-    ...dummyEmail,
-    id: i.toString(),
-    messageId: i.toString(),
-    isStarred: i % 2 === 0
-  })
+interface EmailStore {
+  all: {
+    emails: Email[]
+    isRead: boolean
+    isSelected: boolean
+    settings: Settings
+  }
+  starred: {
+    emails: Email[]
+    isRead: boolean
+    isSelected: boolean
+    settings: Settings
+  }
 }
 
 export const useEmailsStore = defineStore('emails', () => {
-  const all = ref(initialEmails)
-  const starred = ref(
-    initialEmails.filter((email) => email.isStarred).map((email) => ({ ...email }))
-  )
-  const isSelectedAll = ref(false)
-  const isSelectedStarred = ref(false)
-  const isReadAll = ref(false)
-  const isReadStarred = ref(false)
+  const data = ref<EmailStore>({
+    all: {
+      emails: [],
+      isSelected: false,
+      isRead: false,
+      settings: new Settings()
+    },
+    starred: {
+      emails: [],
+      isSelected: false,
+      isRead: false,
+      settings: new Settings(true)
+    }
+  })
 
-  const getEmailById = (id: string) => {
-    return all.value.find((email) => email.id === id)
+  // getters
+  const getAllEmails = () => {
+    return data.value.all.emails
+  }
+  const getStarredEmails = () => {
+    return data.value.starred.emails
+  }
+  const getAllIsSelected = () => {
+    return data.value.all.isSelected
+  }
+  const getStarredIsSelected = () => {
+    return data.value.starred.isSelected
+  }
+  const getAllIsRead = () => {
+    return data.value.all.isRead
+  }
+  const getStarredIsRead = () => {
+    return data.value.starred.isRead
+  }
+  const getAllFormattedPagination = () => {
+    return data.value.all.settings.pagination.getFormattedPagination()
+  }
+  const getStarredFormattedPagination = () => {
+    return data.value.starred.settings.pagination.getFormattedPagination()
+  }
+  const getEmailById = (emailId: string) => {
+    const email = data.value.all.emails.find((email) => email.id === emailId)
+    if (email) {
+      return email
+    }
+    return data.value.starred.emails.find((email) => email.id === emailId)
   }
 
-  function toggleStarredOne(id: string) {
-    all.value.concat(starred.value).forEach((email) => {
-      if (email.id === id) {
-        email.isStarred = !email.isStarred
-      }
-    })
-    starred.value = all.value.filter((email) => email.isStarred)
+  // actions
+  async function fetchAllEmails() {
+    const response = (await service.getAll(data.value.all.settings)) as Response
+
+    const emails: Email[] = []
+    for (const email of response.emails) {
+      emails.push(Email.fromJSON(email))
+    }
+
+    data.value.all.emails = emails
+    data.value.all.settings.pagination.total = response.total
+
+    console.log('fetchAllEmails', data.value.all.emails)
   }
 
-  function toggleReadOne(id: string) {
-    all.value.forEach((email) => {
-      if (email.id === id) {
-        email.isRead = !email.isRead
-      }
-    })
-    starred.value.forEach((email) => {
-      if (email.id === id) {
-        email.isRead = !email.isRead
-      }
+  async function fetchStarredEmails() {
+    const response = (await service.getAll(data.value.starred.settings)) as Response
+
+    const emails: Email[] = []
+    for (const email of response.emails) {
+      emails.push(Email.fromJSON(email))
+    }
+
+    data.value.starred.emails = emails
+    data.value.starred.settings.pagination.total = response.total
+  }
+
+  async function initializeData() {
+    fetchAllEmails()
+    fetchStarredEmails()
+  }
+
+  function toggleSelectedOfAll() {
+    data.value.all.isSelected = !data.value.all.isSelected
+    data.value.all.emails.forEach((email) => {
+      email.isSelected = data.value.all.isSelected
     })
   }
 
-  function toggleSelectedOneOfAll(id: string) {
-    const email = all.value.find((email) => email.id === id)
+  function toggleSelectedOfStarred() {
+    data.value.starred.isSelected = !data.value.starred.isSelected
+    data.value.starred.emails.forEach((email) => {
+      email.isSelected = data.value.starred.isSelected
+    })
+  }
+
+  async function toggleReadOfAllSelected() {
+    data.value.all.isRead = !data.value.all.isRead
+    data.value.all.emails.forEach((email) => {
+      if (email.isSelected) {
+        email.isRead = data.value.all.isRead
+
+        const starredEmail = data.value.starred.emails.find(
+          (starredEmail) => starredEmail.id === email.id
+        )
+        if (starredEmail) {
+          starredEmail.isRead = data.value.all.isRead
+        }
+      }
+    })
+
+    service.updateMany(data.value.all.emails.filter((email) => email.isSelected))
+  }
+
+  async function toggleReadOfStarredSelected() {
+    data.value.starred.isRead = !data.value.starred.isRead
+    data.value.starred.emails.forEach((email) => {
+      if (email.isSelected) {
+        email.isRead = data.value.starred.isRead
+
+        const allEmail = data.value.all.emails.find((allEmail) => allEmail.id === email.id)
+        if (allEmail) {
+          allEmail.isRead = data.value.starred.isRead
+        }
+      }
+    })
+
+    service.updateMany(data.value.starred.emails.filter((email) => email.isSelected))
+  }
+
+  async function deleteSelectedOfAll() {
+    const selectedEmails = data.value.all.emails.filter((email) => email.isSelected)
+    await service.removeMany(selectedEmails.map((email) => email.id))
+    await fetchAllEmails()
+    await fetchStarredEmails()
+  }
+
+  async function deleteSelectedOfStarred() {
+    const selectedEmails = data.value.starred.emails.filter((email) => email.isSelected)
+    await service.removeMany(selectedEmails.map((email) => email.id))
+    await fetchAllEmails()
+    await fetchStarredEmails()
+  }
+
+  function toggleSelectedOneOfAll(emailId: string) {
+    const email = data.value.all.emails.find((email) => email.id === emailId)
     if (email) {
       email.isSelected = !email.isSelected
     }
   }
 
-  function toggleSelectedOneOfStarred(id: string) {
-    const email = starred.value.find((email) => email.id === id)
+  function toggleSelectedOneOfStarred(emailId: string) {
+    const email = data.value.starred.emails.find((email) => email.id === emailId)
     if (email) {
       email.isSelected = !email.isSelected
     }
   }
 
-  function toggleSelectedAll() {
-    all.value.forEach((email) => {
-      email.isSelected = !isSelectedAll.value
-    })
-    isSelectedAll.value = !isSelectedAll.value
-  }
+  async function toggleReadOne(emailId: string) {
+    const allEmail = data.value.all.emails.find((email) => email.id === emailId)
+    const starredEmail = data.value.starred.emails.find((email) => email.id === emailId)
 
-  function toggleSelectedStarred() {
-    starred.value.forEach((email) => {
-      email.isSelected = !isSelectedStarred.value
-    })
-    isSelectedStarred.value = !isSelectedStarred.value
-  }
-
-  function toggleReadSelectedAll() {
-    all.value.forEach((email) => {
-      if (email.isSelected) {
-        email.isRead = !isReadAll.value
+    if (allEmail) {
+      allEmail.isRead = !allEmail.isRead
+      if (starredEmail) {
+        starredEmail.isRead = allEmail.isRead
       }
-    })
-    isReadAll.value = !isReadAll.value
-  }
-
-  function toggleReadSelectedStarred() {
-    starred.value.forEach((email) => {
-      if (email.isSelected) {
-        email.isRead = !isReadStarred.value
+      await service.update(emailId, allEmail)
+    } else {
+      if (starredEmail) {
+        starredEmail.isRead = !starredEmail.isRead
+        await service.update(emailId, starredEmail)
       }
-    })
-    isReadStarred.value = !isReadStarred.value
-  }
-
-  function deleteOne(id: string) {
-    const index = all.value.findIndex((email) => email.id === id)
-    if (index > -1) {
-      all.value.splice(index, 1)
-    }
-    const starredIndex = starred.value.findIndex((email) => email.id === id)
-    if (starredIndex > -1) {
-      starred.value.splice(starredIndex, 1)
     }
   }
 
-  function deleteSelectedAll() {
-    all.value = all.value.filter((email) => !email.isSelected)
-    starred.value = all.value.filter((email) => email.isStarred)
+  async function toggleStarredOne(emailId: string) {
+    const allEmail = data.value.all.emails.find((email) => email.id === emailId)
+    const starredEmail = data.value.starred.emails.find((email) => email.id === emailId)
+
+    if (allEmail) {
+      allEmail.isStarred = !allEmail.isStarred
+      if (starredEmail) {
+        starredEmail.isStarred = allEmail.isStarred
+      }
+      await service.update(emailId, allEmail)
+      await fetchStarredEmails()
+    } else {
+      if (starredEmail) {
+        starredEmail.isStarred = !starredEmail.isStarred
+        await service.update(emailId, starredEmail)
+        await fetchStarredEmails()
+      }
+    }
   }
 
-  function deleteSelectedStarred() {
-    starred.value = starred.value.filter((email) => !email.isSelected)
-    all.value = all.value.filter((email) => !email.isStarred)
+  async function deleteOne(emailId: string) {
+    await service.remove(emailId)
+    await fetchAllEmails()
+    await fetchStarredEmails()
+  }
+
+  async function setReadOne(emailId: string) {
+    const allEmail = data.value.all.emails.find((email) => email.id === emailId)
+    const starredEmail = data.value.starred.emails.find((email) => email.id === emailId)
+
+    if (allEmail) {
+      allEmail.isRead = true
+      if (starredEmail) {
+        starredEmail.isRead = true
+      }
+      await service.update(emailId, allEmail)
+    } else {
+      if (starredEmail) {
+        starredEmail.isRead = true
+        await service.update(emailId, starredEmail)
+      }
+    }
   }
 
   return {
-    all,
-    starred,
-    isSelectedAll,
-    isSelectedStarred,
-    isReadAll,
-    isReadStarred,
+    data,
+    getAllEmails,
+    getStarredEmails,
+    getAllIsSelected,
+    getStarredIsSelected,
+    getAllIsRead,
+    getStarredIsRead,
+    getAllFormattedPagination,
+    getStarredFormattedPagination,
     getEmailById,
-    toggleStarredOne,
-    toggleReadOne,
+    fetchAllEmails,
+    fetchStarredEmails,
+    initializeData,
+    toggleSelectedOfAll,
+    toggleSelectedOfStarred,
+    toggleReadOfAllSelected,
+    toggleReadOfStarredSelected,
+    deleteSelectedOfAll,
+    deleteSelectedOfStarred,
     toggleSelectedOneOfAll,
     toggleSelectedOneOfStarred,
-    toggleSelectedAll,
-    toggleSelectedStarred,
-    toggleReadSelectedAll,
-    toggleReadSelectedStarred,
+    toggleReadOne,
+    toggleStarredOne,
     deleteOne,
-    deleteSelectedAll,
-    deleteSelectedStarred
+    setReadOne
   }
 })

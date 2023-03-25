@@ -1,24 +1,30 @@
+import Pagination from './pagination'
+
 class Settings {
-  page: number
-  pageSize: number
-  sortBy: [string] | null
   starredOnly: boolean
+  sortBy: [string] | null
+  pagination: Pagination
 
   constructor(
+    starredOnly: boolean = false,
+    sortBy: [string] | null = null,
     page: number = 1,
     pageSize: number = 50,
-    sortBy: [string] | null = null,
-    starredOnly: boolean = false
+    total: number = 0
   ) {
-    this.page = page
-    this.pageSize = pageSize
-    this.sortBy = sortBy
     this.starredOnly = starredOnly
+    this.sortBy = sortBy
+    this.pagination = new Pagination(page, pageSize, total)
   }
 
   getFormattedSettings = () => {
     let str =
-      'page=' + this.page + '&pageSize=' + this.pageSize + '&starredOnly=' + this.starredOnly
+      'page=' +
+      this.pagination.page +
+      '&pageSize=' +
+      this.pagination.pageSize +
+      '&starredOnly=' +
+      this.starredOnly
     if (this.sortBy !== null && this.sortBy.length > 0) {
       str += '&sortBy=' + this.sortBy.join(',')
     }

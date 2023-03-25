@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useEmailsStore } from '@/stores/emails'
@@ -23,6 +24,10 @@ const router = useRouter()
 const emailsStore = useEmailsStore()
 const tabStore = useTabStore()
 
+onMounted(() => {
+  emailsStore.initializeData()
+})
+
 const tabs: Tab[] = [
   {
     label: 'All',
@@ -40,6 +45,7 @@ const tabs: Tab[] = [
 
 const onOpen = (emailId: string) => {
   router.push({ name: 'email', params: { id: emailId } })
+  emailsStore.setReadOne(emailId)
 }
 const onTabSelect = (tabName: string) => {
   tabStore.setTab(tabName)
@@ -57,6 +63,7 @@ const onToggleRead = (emailId: string) => {
 const onToggleStar = (emailId: string) => {
   emailsStore.toggleStarredOne(emailId)
 }
+// async is required because we are using await
 const onDelete = (emailId: string) => {
   if (confirm('Are you sure you want to delete this email? This action cannot be undone.')) {
     emailsStore.deleteOne(emailId)
@@ -64,16 +71,16 @@ const onDelete = (emailId: string) => {
 }
 const onToggleSelected = () => {
   if (tabStore.selectedTab === 'all') {
-    emailsStore.toggleSelectedAll()
+    emailsStore.toggleSelectedOfAll()
   } else {
-    emailsStore.toggleSelectedStarred()
+    emailsStore.toggleSelectedOfStarred()
   }
 }
 const onToggleReadSelected = () => {
   if (tabStore.selectedTab === 'all') {
-    emailsStore.toggleReadSelectedAll()
+    emailsStore.toggleReadOfAllSelected()
   } else {
-    emailsStore.toggleReadSelectedStarred()
+    emailsStore.toggleReadOfStarredSelected()
   }
 }
 const onDeleteSelected = () => {
@@ -81,32 +88,39 @@ const onDeleteSelected = () => {
     confirm('Are you sure you want to delete the selected emails? This action cannot be undone.')
   ) {
     if (tabStore.selectedTab === 'all') {
-      emailsStore.deleteSelectedAll()
+      emailsStore.deleteSelectedOfAll()
     } else {
-      emailsStore.deleteSelectedStarred()
+      emailsStore.deleteSelectedOfStarred()
     }
   }
 }
 
 const getTabEmails = () => {
   if (tabStore.selectedTab === 'all') {
-    return emailsStore.all
+    return emailsStore.getAllEmails()
   } else {
-    return emailsStore.starred
+    return emailsStore.getStarredEmails()
   }
 }
 const getTabIsSelected = () => {
   if (tabStore.selectedTab === 'all') {
-    return emailsStore.isSelectedAll
+    return emailsStore.getAllIsSelected()
   } else {
-    return emailsStore.isSelectedStarred
+    return emailsStore.getStarredIsSelected()
   }
 }
 const getTabIsRead = () => {
   if (tabStore.selectedTab === 'all') {
-    return emailsStore.isReadAll
+    return emailsStore.getAllIsRead()
   } else {
-    return emailsStore.isReadStarred
+    return emailsStore.getStarredIsRead()
+  }
+}
+const getTabFormattedPagination = () => {
+  if (tabStore.selectedTab === 'all') {
+    return emailsStore.getAllFormattedPagination()
+  } else {
+    return emailsStore.getStarredFormattedPagination()
   }
 }
 </script>
@@ -127,7 +141,11 @@ const getTabIsRead = () => {
           <EmailUnreadIcon v-else />
         </i>
       </div>
-      <NavigationControls :is-previous-disabled="true" :is-next-disabled="false" label="1-50" />
+      <NavigationControls
+        :is-previous-disabled="true"
+        :is-next-disabled="false"
+        :label="getTabFormattedPagination()"
+      />
     </div>
 
     <TabBar

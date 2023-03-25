@@ -42,7 +42,7 @@ func NewRouter() http.Handler {
 			r.Put("/", UpdateEmail)
 			r.Delete("/", DeleteEmail)
 		})
-		r.Route("/message_id/{messageId}", func(r chi.Router) {
+		r.Route("/messageId/{messageId}", func(r chi.Router) {
 			r.Get("/", GetEmailByMessageId)
 		})
 	})
@@ -64,6 +64,12 @@ func ListEmails(w http.ResponseWriter, r *http.Request) {
 
 		render.Render(w, r, ErrInternalServer)
 		return
+	}
+
+	// log the first email from resp
+	if !querySettings.StarredOnly {
+		email := resp.Emails[0]
+		log.Printf("email: %v\n", email)
 	}
 
 	render.Status(r, http.StatusOK)
