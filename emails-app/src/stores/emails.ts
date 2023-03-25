@@ -42,6 +42,14 @@ export const useEmailsStore = defineStore('emails', () => {
 
   // getters
 
+  const getEmailById = (emailId: string): Email | undefined => {
+    const email = all.value.emails.current.find((email) => email.id === emailId)
+    if (email) {
+      return email
+    }
+    return starred.value.emails.current.find((email) => email.id === emailId)
+  }
+
   const getEmailsOfTab = (tab: string): Email[] => {
     if (tab === 'all') {
       return all.value.emails.current
@@ -70,12 +78,18 @@ export const useEmailsStore = defineStore('emails', () => {
     return starred.value.isRead
   }
 
-  const getEmailById = (emailId: string): Email | undefined => {
-    const email = all.value.emails.current.find((email) => email.id === emailId)
-    if (email) {
-      return email
+  const getHasPreviousPageOfTab = (tab: string): boolean => {
+    if (tab === 'all') {
+      return all.value.settings.pagination.page > 1
     }
-    return starred.value.emails.current.find((email) => email.id === emailId)
+    return starred.value.settings.pagination.page > 1
+  }
+
+  const getHasNextPageOfTab = (tab: string): boolean => {
+    if (tab === 'all') {
+      return all.value.settings.pagination.page < all.value.settings.pagination.getMaxPage()
+    }
+    return starred.value.settings.pagination.page < starred.value.settings.pagination.getMaxPage()
   }
 
   // actions
@@ -358,34 +372,86 @@ export const useEmailsStore = defineStore('emails', () => {
     }
   }
 
+  async function previousPageOfAll() {
+    if (all.value.settings.pagination.page > 1) {
+      all.value.settings.pagination.page--
+      await fetchEmailsOfAll()
+    }
+  }
+
+  async function previousPageOfStarred() {
+    if (starred.value.settings.pagination.page > 1) {
+      starred.value.settings.pagination.page--
+      await fetchEmailsOfStarred()
+    }
+  }
+
+  async function previousPageOfTab(tab: string) {
+    if (tab === 'all') {
+      await previousPageOfAll()
+    } else {
+      await previousPageOfStarred()
+    }
+  }
+
+  async function nextPageOfAll() {
+    if (all.value.settings.pagination.page < all.value.settings.pagination.getMaxPage()) {
+      all.value.settings.pagination.page++
+      await fetchEmailsOfAll()
+    }
+  }
+
+  async function nextPageOfStarred() {
+    if (starred.value.settings.pagination.page < starred.value.settings.pagination.getMaxPage()) {
+      starred.value.settings.pagination.page++
+      await fetchEmailsOfStarred()
+    }
+  }
+
+  async function nextPageOfTab(tab: string) {
+    if (tab === 'all') {
+      await nextPageOfAll()
+    } else {
+      await nextPageOfStarred()
+    }
+  }
+
   return {
     all,
     starred,
     // export all getters
+    getEmailById,
     getEmailsOfTab,
     getFormattedPaginationOfTab,
     getIsSelectedOfTab,
     getIsReadOfTab,
-    getEmailById,
+    getHasPreviousPageOfTab,
+    getHasNextPageOfTab,
     // export all actions
     fetchEmailsOfAll,
     fetchEmailsOfStarred,
     initialize,
-    toggleSelectedOfAll,
-    toggleSelectedOfStarred,
+    // toggleSelectedOfAll,
+    // toggleSelectedOfStarred,
     toggleSelectedOfTab,
-    toggleReadOfSelectedOfAll,
-    toggleReadOfSelectedOfStarred,
+    // toggleReadOfSelectedOfAll,
+    // toggleReadOfSelectedOfStarred,
     toggleReadOfSelectedOfTab,
-    deleteSelectedOfAll,
-    deleteSelectedOfStarred,
+    // deleteSelectedOfAll,
+    // deleteSelectedOfStarred,
     deleteSelectedOfTab,
-    toggleSelectedOneOfAll,
-    toggleSelectedOneOfStarred,
+    // toggleSelectedOneOfAll,
+    // toggleSelectedOneOfStarred,
     toggleSelectedOneOfTab,
     toggleReadOne,
     toggleStarredOne,
     deleteOne,
-    setReadOne
+    setReadOne,
+    // previousPageOfAll,
+    // previousPageOfStarred,
+    previousPageOfTab,
+    // nextPageOfAll,
+    // nextPageOfStarred,
+    nextPageOfTab
   }
 })

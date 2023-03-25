@@ -85,6 +85,14 @@ const onDeleteSelectedTab = () => {
     emailsStore.deleteSelectedOfTab(tabStore.selectedTab)
   }
 }
+
+const onPreviousPageTab = () => {
+  emailsStore.previousPageOfTab(tabStore.selectedTab)
+}
+
+const onNextPageTab = () => {
+  emailsStore.nextPageOfTab(tabStore.selectedTab)
+}
 </script>
 
 <template>
@@ -104,9 +112,11 @@ const onDeleteSelectedTab = () => {
         </i>
       </div>
       <NavigationControls
-        :is-previous-disabled="true"
-        :is-next-disabled="false"
+        :is-previous-disabled="!emailsStore.getHasPreviousPageOfTab(tabStore.selectedTab)"
+        :is-next-disabled="!emailsStore.getHasNextPageOfTab(tabStore.selectedTab)"
         :label="emailsStore.getFormattedPaginationOfTab(tabStore.selectedTab)"
+        @previous="onPreviousPageTab()"
+        @next="onNextPageTab()"
       />
     </div>
 

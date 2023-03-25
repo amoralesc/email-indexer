@@ -9,7 +9,8 @@ defineProps<{
 }>()
 
 defineEmits<{
-  navigate: (direction: 'next' | 'previous') => void
+  previous: () => void
+  next: () => void
 }>()
 </script>
 
@@ -21,7 +22,7 @@ defineEmits<{
       :class="{
         'navigation__previous--disabled': isPreviousDisabled
       }"
-      @click="() => $emit('navigate', 'previous')"
+      @click="() => $emit('previous')"
     >
       <NavigatePreviousIcon />
     </i>
@@ -30,7 +31,7 @@ defineEmits<{
       :class="{
         'navigation__next--disabled': isNextDisabled
       }"
-      @click="() => $emit('navigate', 'next')"
+      @click="() => $emit('next')"
     >
       <NavigateNextIcon />
     </i>

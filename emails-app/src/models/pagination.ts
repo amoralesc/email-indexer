@@ -16,6 +16,10 @@ class Pagination {
 
     return lowerBound + '-' + upperBound + ' of ' + this.total
   }
+
+  getMaxPage = () => {
+    return Math.ceil(this.total / this.pageSize)
+  }
 }
 
 export default Pagination
