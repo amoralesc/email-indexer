@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import SearchBar from './components/SearchBar.vue'
 </script>
 
 <template>
@@ -8,6 +9,7 @@ import { RouterView } from 'vue-router'
       <img alt="App logo" class="logo" src="@/assets/logo.svg" width="30" height="30" />
       <h1>Email Indexer</h1>
     </div>
+    <SearchBar />
   </header>
 
   <RouterView />
@@ -23,8 +25,9 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0rem 1rem;
+  gap: 2rem;
   margin-bottom: 1rem;
+  padding: 0 0.5rem;
 }
 
 footer {
