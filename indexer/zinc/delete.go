@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -37,13 +38,15 @@ func (service *ZincService) DeleteEmail(id string) error {
 
 // DeleteEmails deletes a list of emails from the zinc server.
 func (service *ZincService) DeleteEmails(ids []string) error {
-	const deleteTemplate = `{ "delete" : { "_index" : "olympics", "_id": "%v" } }` + "\n"
+	const deleteTemplate = `{ "delete" : { "_index" : "emails", "_id": "%v" } }` + "\n"
 	var deleteBody string
 
 	// create the request body
 	for _, id := range ids {
 		deleteBody += fmt.Sprintf(deleteTemplate, id)
 	}
+
+	log.Printf("delete body: %v", deleteBody)
 
 	// create the request
 	req, err := http.NewRequest("POST", service.Url+apiBulkDeletePath, bytes.NewBuffer([]byte(deleteBody)))

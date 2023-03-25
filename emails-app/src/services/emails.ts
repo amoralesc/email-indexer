@@ -50,7 +50,7 @@ const remove = async (id: string): Promise<void> => {
 }
 
 const removeMany = async (ids: string[]): Promise<void> => {
-  await axios.delete(`${baseUrl}/bulk/${ids.join(',')}`)
+  await axios.delete(baseUrl + '?ids=' + ids.join(','))
 }
 
 export default {

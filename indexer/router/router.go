@@ -32,11 +32,9 @@ func NewRouter() http.Handler {
 	r.Route("/api/emails", func(r chi.Router) {
 		r.With(loadQuerySettings).Get("/", ListEmails)
 		r.Put("/", UpdateEmails)
+		r.Delete("/", DeleteEmails)
 		r.With(loadQuerySettings).Post("/search", SearchEmails)
 		r.With(loadQuerySettings).Get("/query", QueryEmails)
-		r.Route("/bulk/{emailIds}", func(r chi.Router) {
-			r.Delete("/", DeleteEmails)
-		})
 		r.Route("/{emailId}", func(r chi.Router) {
 			r.Get("/", GetEmailById)
 			r.Put("/", UpdateEmail)
@@ -272,8 +270,14 @@ func DeleteEmail(w http.ResponseWriter, r *http.Request) {
 
 // DeleteEmails deletes emails by their ids.
 func DeleteEmails(w http.ResponseWriter, r *http.Request) {
-	ids := strings.Split(chi.URLParam(r, "emailIds"), ",")
-	err := zinc.Service.DeleteEmails(ids)
+	// get the ids from the query param ids
+	ids := r.URL.Query().Get("ids")
+	if ids == "" {
+		render.Render(w, r, ErrInvalidRequest(fmt.Errorf("ids can't be empty")))
+		return
+	}
+
+	err := zinc.Service.DeleteEmails(strings.Split(ids, ","))
 
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
