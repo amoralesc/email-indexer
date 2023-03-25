@@ -56,7 +56,7 @@ func ValidateSortField(sortField string) error {
 }
 
 // NewQuerySettings creates new QuerySettings.
-func NewQuerySettings(sortBy string, page, pageSize int, starredOnly bool) (*QuerySettings, error) {
+func NewQuerySettings(sortBy string, start, size int, starredOnly bool) (*QuerySettings, error) {
 	if sortBy == "" {
 		sortBy = defaultSortFields
 	} else {
@@ -78,17 +78,17 @@ func NewQuerySettings(sortBy string, page, pageSize int, starredOnly bool) (*Que
 		}
 	}
 
-	if page <= 0 {
-		return nil, fmt.Errorf("page should be equal or greater than 1: %v", page)
+	if start <= 0 {
+		return nil, fmt.Errorf("start should be equal or greater than 1: %v", start)
 	}
-	if pageSize < 0 {
-		return nil, fmt.Errorf("pageSize should be equal or greater than 0: %v", pageSize)
+	if size < 0 {
+		return nil, fmt.Errorf("size should be equal or greater than 0: %v", size)
 	}
-	if pageSize == 0 {
-		pageSize = defaultQuerySize
+	if size == 0 {
+		size = defaultQuerySize
 	}
 
-	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: (page - 1) * pageSize, Size: pageSize}, StarredOnly: starredOnly}, nil
+	return &QuerySettings{Sort: sortBy, Pagination: &QueryPaginationSettings{Start: start, Size: size}, StarredOnly: starredOnly}, nil
 }
 
 // ParseQuerySortSettings parses the query sort settings to a string.

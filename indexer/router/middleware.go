@@ -16,32 +16,32 @@ import (
 func loadQuerySettings(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get the page and page size
-		page := r.URL.Query().Get("page")
-		pageSize := r.URL.Query().Get("pageSize")
+		start := r.URL.Query().Get("start")
+		size := r.URL.Query().Get("size")
 		sortBy := r.URL.Query().Get("sortBy")
 		starredOnly := r.URL.Query().Get("starredOnly")
 
-		if page == "" {
-			page = "1"
+		if start == "" {
+			start = "1"
 		}
-		if pageSize == "" {
-			pageSize = "0"
+		if size == "" {
+			size = "0"
 		}
 		if starredOnly == "" {
 			starredOnly = "false"
 		}
 
-		// cast page and page size to int
-		pageInt, err := strconv.Atoi(page)
+		// cast start and size to int
+		startInt, err := strconv.Atoi(start)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
-			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("page should be an integer")))
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("start should be an integer")))
 			return
 		}
-		pageSizeInt, err := strconv.Atoi(pageSize)
+		sizeInt, err := strconv.Atoi(size)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
-			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("pageSize should be an integer")))
+			render.Render(w, r, ErrInvalidRequest(fmt.Errorf("size should be an integer")))
 			return
 		}
 		// cast starredOnly to bool
@@ -53,7 +53,7 @@ func loadQuerySettings(next http.Handler) http.Handler {
 		}
 
 		// create the query settings
-		querySettings, err := zinc.NewQuerySettings(sortBy, pageInt, pageSizeInt, starredOnlyBool)
+		querySettings, err := zinc.NewQuerySettings(sortBy, startInt, sizeInt, starredOnlyBool)
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
 			render.Render(w, r, ErrInvalidRequest(err))
