@@ -78,8 +78,8 @@ func NewQuerySettings(sortBy string, start, size int, starredOnly bool) (*QueryS
 		}
 	}
 
-	if start <= 0 {
-		return nil, fmt.Errorf("start should be equal or greater than 1: %v", start)
+	if start < 0 {
+		return nil, fmt.Errorf("start should be equal or greater than 0: %v", start)
 	}
 	if size < 0 {
 		return nil, fmt.Errorf("size should be equal or greater than 0: %v", size)
