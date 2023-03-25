@@ -10,7 +10,7 @@ import (
 const (
 	defaultQueryStart = 0
 	defaultQuerySize  = 100
-	defaultSortField  = "-date"
+	defaultSortFields = "-date,messageId"
 )
 
 // QueryPaginationSettings sets the pagination parameters for the query.
@@ -48,7 +48,7 @@ type SearchQuery struct {
 
 // ValidateSortField validates a sort field with the format: (+|-)(from|to|cc|bcc|date)
 func ValidateSortField(sortField string) error {
-	matches := regexp.MustCompile(`^-?(from|to|cc|bcc|date)$`).MatchString(sortField)
+	matches := regexp.MustCompile(`^-?(messageId|date|from|to|cc|bcc)$`).MatchString(sortField)
 	if !matches {
 		return fmt.Errorf("invalid sort field: %v", sortField)
 	}
@@ -58,7 +58,16 @@ func ValidateSortField(sortField string) error {
 // NewQuerySettings creates new QuerySettings.
 func NewQuerySettings(sortBy string, page, pageSize int, starredOnly bool) (*QuerySettings, error) {
 	if sortBy == "" {
-		sortBy = defaultSortField
+		sortBy = defaultSortFields
+	} else {
+		// add default sort fields at end if not already present
+		// this ensures the sort order is always the same
+		// for the fields specified
+		for _, s := range strings.Split(defaultSortFields, ",") {
+			if !strings.Contains(sortBy, s) {
+				sortBy += "," + s
+			}
+		}
 	}
 
 	sortFields := strings.Split(sortBy, ",")

@@ -66,12 +66,6 @@ func ListEmails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log the first email from resp
-	if !querySettings.StarredOnly {
-		email := resp.Emails[0]
-		log.Printf("email: %v\n", email)
-	}
-
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, resp)
 }
