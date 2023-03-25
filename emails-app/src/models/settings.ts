@@ -16,13 +16,7 @@ class Settings {
   }
 
   getFormattedSettings = (): string => {
-    let str =
-      'page=' +
-      this.pagination.page +
-      '&pageSize=' +
-      this.pagination.pageSize * 2 +
-      '&starredOnly=' +
-      this.starredOnly
+    let str = this.pagination.getFormattedSettings() + '&starredOnly=' + this.starredOnly
     if (this.sortBy !== null && this.sortBy.length > 0) {
       str += '&sortBy=' + this.sortBy.join(',')
     }

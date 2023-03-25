@@ -49,7 +49,6 @@ const onTabSelect = (tabName: string) => {
 
 const onOpen = (emailId: string) => {
   router.push({ name: 'email', params: { id: emailId } })
-  emailsStore.setReadOne(emailId)
 }
 
 const onToggleSelect = (emailId: string) => {

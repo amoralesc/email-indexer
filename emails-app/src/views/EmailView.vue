@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useEmailsStore } from '@/stores/emails'
@@ -16,9 +17,15 @@ const emailsStore = useEmailsStore()
 const emailId = route.params.id as string
 const email = emailsStore.getEmailById(emailId)
 
+onMounted(() => {
+  if (email) {
+    emailsStore.setReadOne(emailId)
+  }
+})
+
 const onBack = () => {
   // navigate back in history
-  router.go(-1)
+  router.back()
 }
 const onToggleRead = () => {
   emailsStore.toggleReadOne(emailId)
@@ -53,7 +60,6 @@ const onDelete = () => {
           <StarFilledIcon v-else />
         </i>
       </div>
-      <NavigationControls :is-previous-disabled="true" :is-next-disabled="false" label="1-50" />
     </div>
 
     <div class="email-view__content">
@@ -66,9 +72,7 @@ const onDelete = () => {
         <p>BCC: {{ email.bcc.join(', ') }}</p>
         <p></p>
       </div>
-      <div class="email-view__content__body">
-        <p>{{ email.body }}</p>
-      </div>
+      <div class="email-view__content__body" v-html="email.body"></div>
     </div>
   </div>
   <div v-else>
