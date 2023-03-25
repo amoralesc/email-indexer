@@ -2,8 +2,8 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useEmailsStore } from '@/stores/emails'
-import { useTabStore } from '@/stores/tab'
+import { useEmailsStore } from '@/stores'
+import { useTabStore } from '@/stores'
 import type { Tab } from '@/models/tab'
 
 import EmailItem from '@/components/EmailItem.vue'
@@ -25,7 +25,7 @@ const emailsStore = useEmailsStore()
 const tabStore = useTabStore()
 
 onMounted(() => {
-  emailsStore.initializeData()
+  emailsStore.initialize()
 })
 
 const tabs: Tab[] = [
@@ -43,84 +43,46 @@ const tabs: Tab[] = [
   }
 ]
 
+const onTabSelect = (tabName: string) => {
+  tabStore.setTab(tabName)
+}
+
 const onOpen = (emailId: string) => {
   router.push({ name: 'email', params: { id: emailId } })
   emailsStore.setReadOne(emailId)
 }
-const onTabSelect = (tabName: string) => {
-  tabStore.setTab(tabName)
-}
+
 const onToggleSelect = (emailId: string) => {
-  if (tabStore.selectedTab === 'all') {
-    emailsStore.toggleSelectedOneOfAll(emailId)
-  } else {
-    emailsStore.toggleSelectedOneOfStarred(emailId)
-  }
+  emailsStore.toggleSelectedOneOfTab(emailId, tabStore.selectedTab)
 }
+
 const onToggleRead = (emailId: string) => {
   emailsStore.toggleReadOne(emailId)
 }
+
 const onToggleStar = (emailId: string) => {
   emailsStore.toggleStarredOne(emailId)
 }
-// async is required because we are using await
+
 const onDelete = (emailId: string) => {
   if (confirm('Are you sure you want to delete this email? This action cannot be undone.')) {
     emailsStore.deleteOne(emailId)
   }
 }
-const onToggleSelected = () => {
-  if (tabStore.selectedTab === 'all') {
-    emailsStore.toggleSelectedOfAll()
-  } else {
-    emailsStore.toggleSelectedOfStarred()
-  }
+
+const onToggleSelectedTab = () => {
+  emailsStore.toggleSelectedOfTab(tabStore.selectedTab)
 }
-const onToggleReadSelected = () => {
-  if (tabStore.selectedTab === 'all') {
-    emailsStore.toggleReadOfAllSelected()
-  } else {
-    emailsStore.toggleReadOfStarredSelected()
-  }
+
+const onToggleReadSelectedTab = () => {
+  emailsStore.toggleReadOfSelectedOfTab(tabStore.selectedTab)
 }
-const onDeleteSelected = () => {
+
+const onDeleteSelectedTab = () => {
   if (
     confirm('Are you sure you want to delete the selected emails? This action cannot be undone.')
   ) {
-    if (tabStore.selectedTab === 'all') {
-      emailsStore.deleteSelectedOfAll()
-    } else {
-      emailsStore.deleteSelectedOfStarred()
-    }
-  }
-}
-
-const getTabEmails = () => {
-  if (tabStore.selectedTab === 'all') {
-    return emailsStore.getAllEmails()
-  } else {
-    return emailsStore.getStarredEmails()
-  }
-}
-const getTabIsSelected = () => {
-  if (tabStore.selectedTab === 'all') {
-    return emailsStore.getAllIsSelected()
-  } else {
-    return emailsStore.getStarredIsSelected()
-  }
-}
-const getTabIsRead = () => {
-  if (tabStore.selectedTab === 'all') {
-    return emailsStore.getAllIsRead()
-  } else {
-    return emailsStore.getStarredIsRead()
-  }
-}
-const getTabFormattedPagination = () => {
-  if (tabStore.selectedTab === 'all') {
-    return emailsStore.getAllFormattedPagination()
-  } else {
-    return emailsStore.getStarredFormattedPagination()
+    emailsStore.deleteSelectedOfTab(tabStore.selectedTab)
   }
 }
 </script>
@@ -129,22 +91,22 @@ const getTabFormattedPagination = () => {
   <div class="list-view">
     <div class="list-view__header">
       <div class="list-view__actions">
-        <i @click="onToggleSelected()">
-          <CheckboxIcon v-if="!getTabIsSelected()" />
+        <i @click="onToggleSelectedTab()">
+          <CheckboxIcon v-if="!emailsStore.getIsSelectedOfTab(tabStore.selectedTab)" />
           <ChecboxCheckedIcon v-else />
         </i>
-        <i @click="onDeleteSelected()">
+        <i @click="onDeleteSelectedTab()">
           <DeleteIcon />
         </i>
-        <i @click="onToggleReadSelected()">
-          <EmailReadIcon v-if="!getTabIsRead()" />
+        <i @click="onToggleReadSelectedTab()">
+          <EmailReadIcon v-if="!emailsStore.getIsReadOfTab(tabStore.selectedTab)" />
           <EmailUnreadIcon v-else />
         </i>
       </div>
       <NavigationControls
         :is-previous-disabled="true"
         :is-next-disabled="false"
-        :label="getTabFormattedPagination()"
+        :label="emailsStore.getFormattedPaginationOfTab(tabStore.selectedTab)"
       />
     </div>
 
@@ -157,7 +119,7 @@ const getTabFormattedPagination = () => {
 
     <div class="list-view__emails">
       <EmailItem
-        v-for="email in getTabEmails()"
+        v-for="email in emailsStore.getEmailsOfTab(tabStore.selectedTab)"
         :key="email.id"
         :email="email"
         @open="onOpen(email.id)"

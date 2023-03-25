@@ -2,267 +2,386 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import Email from '@/models/email'
-import type { Response } from '@/models/response'
 import Settings from '@/models/settings'
 
-import service from '@/services/emails'
+import service from '@/services'
 
-interface EmailStore {
-  all: {
-    emails: Email[]
-    isRead: boolean
-    isSelected: boolean
-    settings: Settings
+interface EmailState {
+  emails: {
+    current: Email[]
+    next: Email[]
   }
-  starred: {
-    emails: Email[]
-    isRead: boolean
-    isSelected: boolean
-    settings: Settings
-  }
+  isSelected: boolean
+  isRead: boolean
+  settings: Settings
 }
 
+const waitTime = 1000
+
 export const useEmailsStore = defineStore('emails', () => {
-  const data = ref<EmailStore>({
-    all: {
-      emails: [],
-      isSelected: false,
-      isRead: false,
-      settings: new Settings()
+  const all = ref({
+    emails: {
+      current: [],
+      next: []
     },
-    starred: {
-      emails: [],
-      isSelected: false,
-      isRead: false,
-      settings: new Settings(true)
-    }
-  })
+    isSelected: false,
+    isRead: false,
+    settings: new Settings()
+  } as EmailState)
+
+  const starred = ref({
+    emails: {
+      previous: [],
+      current: [],
+      next: []
+    },
+    isSelected: false,
+    isRead: false,
+    settings: new Settings(true)
+  } as EmailState)
 
   // getters
-  const getAllEmails = () => {
-    return data.value.all.emails
+
+  const getEmailsOfTab = (tab: string): Email[] => {
+    if (tab === 'all') {
+      return all.value.emails.current
+    }
+    return starred.value.emails.current
   }
-  const getStarredEmails = () => {
-    return data.value.starred.emails
+
+  const getFormattedPaginationOfTab = (tab: string): string => {
+    if (tab === 'all') {
+      return all.value.settings.pagination.getFormattedPagination()
+    }
+    return starred.value.settings.pagination.getFormattedPagination()
   }
-  const getAllIsSelected = () => {
-    return data.value.all.isSelected
+
+  const getIsSelectedOfTab = (tab: string): boolean => {
+    if (tab === 'all') {
+      return all.value.isSelected
+    }
+    return starred.value.isSelected
   }
-  const getStarredIsSelected = () => {
-    return data.value.starred.isSelected
+
+  const getIsReadOfTab = (tab: string): boolean => {
+    if (tab === 'all') {
+      return all.value.isRead
+    }
+    return starred.value.isRead
   }
-  const getAllIsRead = () => {
-    return data.value.all.isRead
-  }
-  const getStarredIsRead = () => {
-    return data.value.starred.isRead
-  }
-  const getAllFormattedPagination = () => {
-    return data.value.all.settings.pagination.getFormattedPagination()
-  }
-  const getStarredFormattedPagination = () => {
-    return data.value.starred.settings.pagination.getFormattedPagination()
-  }
-  const getEmailById = (emailId: string) => {
-    const email = data.value.all.emails.find((email) => email.id === emailId)
+
+  const getEmailById = (emailId: string): Email | undefined => {
+    const email = all.value.emails.current.find((email) => email.id === emailId)
     if (email) {
       return email
     }
-    return data.value.starred.emails.find((email) => email.id === emailId)
+    return starred.value.emails.current.find((email) => email.id === emailId)
   }
 
   // actions
-  async function fetchAllEmails() {
-    const response = (await service.getAll(data.value.all.settings)) as Response
+
+  async function fetchEmailsOfAll() {
+    const response = await service.getAll(all.value.settings)
+
+    // the above response returns double the amount of emails
+    // the first half is the current page, the second half is the next page
+    // so we need to split the response into two arrays
+    const emails: Email[] = []
+    for (const email of response.emails) {
+      emails.push(Email.fromJSON(email))
+    }
+
+    all.value.emails.current = emails.slice(0, all.value.settings.pagination.pageSize)
+    all.value.emails.next = emails.slice(all.value.settings.pagination.pageSize)
+    all.value.settings.pagination.total = response.total
+  }
+
+  async function fetchEmailsOfStarred() {
+    const response = await service.getAll(starred.value.settings)
 
     const emails: Email[] = []
     for (const email of response.emails) {
       emails.push(Email.fromJSON(email))
     }
 
-    data.value.all.emails = emails
-    data.value.all.settings.pagination.total = response.total
-
-    console.log('fetchAllEmails', data.value.all.emails)
+    starred.value.emails.current = emails.slice(0, starred.value.settings.pagination.pageSize)
+    starred.value.emails.next = emails.slice(starred.value.settings.pagination.pageSize)
+    starred.value.settings.pagination.total = response.total
   }
 
-  async function fetchStarredEmails() {
-    const response = (await service.getAll(data.value.starred.settings)) as Response
-
-    const emails: Email[] = []
-    for (const email of response.emails) {
-      emails.push(Email.fromJSON(email))
-    }
-
-    data.value.starred.emails = emails
-    data.value.starred.settings.pagination.total = response.total
-  }
-
-  async function initializeData() {
-    fetchAllEmails()
-    fetchStarredEmails()
+  async function initialize() {
+    await fetchEmailsOfAll()
+    await fetchEmailsOfStarred()
   }
 
   function toggleSelectedOfAll() {
-    data.value.all.isSelected = !data.value.all.isSelected
-    data.value.all.emails.forEach((email) => {
-      email.isSelected = data.value.all.isSelected
+    all.value.isSelected = !all.value.isSelected
+    all.value.emails.current.forEach((email) => {
+      email.isSelected = all.value.isSelected
     })
   }
 
   function toggleSelectedOfStarred() {
-    data.value.starred.isSelected = !data.value.starred.isSelected
-    data.value.starred.emails.forEach((email) => {
-      email.isSelected = data.value.starred.isSelected
+    starred.value.isSelected = !starred.value.isSelected
+    starred.value.emails.current.forEach((email) => {
+      email.isSelected = starred.value.isSelected
     })
   }
 
-  async function toggleReadOfAllSelected() {
-    data.value.all.isRead = !data.value.all.isRead
-    data.value.all.emails.forEach((email) => {
-      if (email.isSelected) {
-        email.isRead = data.value.all.isRead
+  function toggleSelectedOfTab(tab: string) {
+    if (tab === 'all') {
+      toggleSelectedOfAll()
+    } else {
+      toggleSelectedOfStarred()
+    }
+  }
 
-        const starredEmail = data.value.starred.emails.find(
-          (starredEmail) => starredEmail.id === email.id
+  async function toggleReadOfSelectedOfAll() {
+    all.value.isRead = !all.value.isRead
+    all.value.emails.current.forEach((email) => {
+      if (email.isSelected) {
+        email.isRead = all.value.isRead
+
+        const emailOfStarred = starred.value.emails.current.find(
+          (emailOfStarred) => emailOfStarred.id === email.id
         )
-        if (starredEmail) {
-          starredEmail.isRead = data.value.all.isRead
+        if (emailOfStarred) {
+          emailOfStarred.isRead = all.value.isRead
         }
       }
     })
 
-    service.updateMany(data.value.all.emails.filter((email) => email.isSelected))
+    service.updateMany(all.value.emails.current.filter((email) => email.isSelected))
   }
 
-  async function toggleReadOfStarredSelected() {
-    data.value.starred.isRead = !data.value.starred.isRead
-    data.value.starred.emails.forEach((email) => {
+  async function toggleReadOfSelectedOfStarred() {
+    starred.value.isRead = !starred.value.isRead
+    starred.value.emails.current.forEach((email) => {
       if (email.isSelected) {
-        email.isRead = data.value.starred.isRead
+        email.isRead = starred.value.isRead
 
-        const allEmail = data.value.all.emails.find((allEmail) => allEmail.id === email.id)
-        if (allEmail) {
-          allEmail.isRead = data.value.starred.isRead
+        const emailOfAll = all.value.emails.current.find((emailOfAll) => emailOfAll.id === email.id)
+        if (emailOfAll) {
+          emailOfAll.isRead = starred.value.isRead
         }
       }
     })
 
-    service.updateMany(data.value.starred.emails.filter((email) => email.isSelected))
+    service.updateMany(starred.value.emails.current.filter((email) => email.isSelected))
+  }
+
+  async function toggleReadOfSelectedOfTab(tab: string) {
+    if (tab === 'all') {
+      await toggleReadOfSelectedOfAll()
+    } else {
+      await toggleReadOfSelectedOfStarred()
+    }
   }
 
   async function deleteSelectedOfAll() {
-    const selectedEmails = data.value.all.emails.filter((email) => email.isSelected)
-    await service.removeMany(selectedEmails.map((email) => email.id))
-    await fetchAllEmails()
-    await fetchStarredEmails()
+    // filter out the emails that are selected
+    all.value.emails.current = all.value.emails.current.filter((email) => !email.isSelected)
+    // fill current page with next page top emails until current page is full
+    while (all.value.emails.current.length < all.value.settings.pagination.pageSize) {
+      const nextEmail = all.value.emails.next.shift()
+      if (nextEmail) {
+        all.value.emails.current.push(nextEmail)
+      } else {
+        break
+      }
+    }
+
+    // now call the services
+    // this is done in this order because the service is slow
+    // to register the delete changes and needs to be waited on
+    // so the re-fetching of the emails works properly
+    const ids = all.value.emails.current
+      .filter((email) => email.isSelected)
+      .map((email) => email.id)
+
+    await service.removeMany(ids)
+    await new Promise((resolve) => setTimeout(resolve, waitTime))
+    await fetchEmailsOfAll()
+    await fetchEmailsOfStarred()
   }
 
   async function deleteSelectedOfStarred() {
-    const selectedEmails = data.value.starred.emails.filter((email) => email.isSelected)
-    await service.removeMany(selectedEmails.map((email) => email.id))
-    await fetchAllEmails()
-    await fetchStarredEmails()
+    starred.value.emails.current = starred.value.emails.current.filter((email) => !email.isSelected)
+    while (starred.value.emails.current.length < starred.value.settings.pagination.pageSize) {
+      const nextEmail = starred.value.emails.next.shift()
+      if (nextEmail) {
+        starred.value.emails.current.push(nextEmail)
+      } else {
+        break
+      }
+    }
+
+    const ids = starred.value.emails.current
+      .filter((email) => email.isSelected)
+      .map((email) => email.id)
+
+    await service.removeMany(ids)
+    await new Promise((resolve) => setTimeout(resolve, waitTime))
+    await fetchEmailsOfAll()
+    await fetchEmailsOfStarred()
+  }
+
+  async function deleteSelectedOfTab(tab: string) {
+    if (tab === 'all') {
+      await deleteSelectedOfAll()
+    } else {
+      await deleteSelectedOfStarred()
+    }
   }
 
   function toggleSelectedOneOfAll(emailId: string) {
-    const email = data.value.all.emails.find((email) => email.id === emailId)
+    const email = all.value.emails.current.find((email) => email.id === emailId)
     if (email) {
       email.isSelected = !email.isSelected
     }
   }
 
   function toggleSelectedOneOfStarred(emailId: string) {
-    const email = data.value.starred.emails.find((email) => email.id === emailId)
+    const email = starred.value.emails.current.find((email) => email.id === emailId)
     if (email) {
       email.isSelected = !email.isSelected
     }
   }
 
-  async function toggleReadOne(emailId: string) {
-    const allEmail = data.value.all.emails.find((email) => email.id === emailId)
-    const starredEmail = data.value.starred.emails.find((email) => email.id === emailId)
-
-    if (allEmail) {
-      allEmail.isRead = !allEmail.isRead
-      if (starredEmail) {
-        starredEmail.isRead = allEmail.isRead
-      }
-      await service.update(emailId, allEmail)
+  function toggleSelectedOneOfTab(tab: string, emailId: string) {
+    if (tab === 'all') {
+      toggleSelectedOneOfAll(emailId)
     } else {
-      if (starredEmail) {
-        starredEmail.isRead = !starredEmail.isRead
-        await service.update(emailId, starredEmail)
+      toggleSelectedOneOfStarred(emailId)
+    }
+  }
+
+  async function toggleReadOne(emailId: string) {
+    const emailOfAll = all.value.emails.current.find((email) => email.id === emailId)
+    const emailOfStarred = starred.value.emails.current.find((email) => email.id === emailId)
+
+    if (emailOfAll) {
+      emailOfAll.isRead = !emailOfAll.isRead
+      if (emailOfStarred) {
+        emailOfStarred.isRead = emailOfAll.isRead
+      }
+
+      await service.update(emailId, emailOfAll)
+    } else {
+      if (emailOfStarred) {
+        emailOfStarred.isRead = !emailOfStarred.isRead
+
+        await service.update(emailId, emailOfStarred)
       }
     }
   }
 
   async function toggleStarredOne(emailId: string) {
-    const allEmail = data.value.all.emails.find((email) => email.id === emailId)
-    const starredEmail = data.value.starred.emails.find((email) => email.id === emailId)
+    const emailOfAll = all.value.emails.current.find((email) => email.id === emailId)
+    const emailOfStarred = starred.value.emails.current.find((email) => email.id === emailId)
 
-    if (allEmail) {
-      allEmail.isStarred = !allEmail.isStarred
-      if (starredEmail) {
-        starredEmail.isStarred = allEmail.isStarred
+    if (emailOfAll) {
+      emailOfAll.isStarred = !emailOfAll.isStarred
+      if (emailOfStarred) {
+        emailOfStarred.isStarred = emailOfAll.isStarred
       }
-      await service.update(emailId, allEmail)
-      await fetchStarredEmails()
+
+      await service.update(emailId, emailOfAll)
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
+      await fetchEmailsOfStarred()
     } else {
-      if (starredEmail) {
-        starredEmail.isStarred = !starredEmail.isStarred
-        await service.update(emailId, starredEmail)
-        await fetchStarredEmails()
+      if (emailOfStarred) {
+        // if the email is only in the starred list, it means we are in the starred tab
+        // so we need to filter it out of the starred list and add the next email
+        // from the next page to the current page
+        starred.value.emails.current = starred.value.emails.current.filter(
+          (email) => email.id !== emailId
+        )
+        const nextEmail = starred.value.emails.next.shift()
+        if (nextEmail) {
+          starred.value.emails.current.push(nextEmail)
+        }
+
+        await service.update(emailId, emailOfStarred)
+        await new Promise((resolve) => setTimeout(resolve, waitTime))
+        await fetchEmailsOfStarred()
       }
     }
   }
 
   async function deleteOne(emailId: string) {
+    // filter out the email from the current page
+    all.value.emails.current = all.value.emails.current.filter((email) => email.id !== emailId)
+    // fill current page with next page top emails until current page is full
+    // ONLY if current page has less than the page size
+    if (all.value.emails.current.length < all.value.settings.pagination.pageSize) {
+      const nextEmail = all.value.emails.next.shift()
+      if (nextEmail) {
+        all.value.emails.current.push(nextEmail)
+      }
+    }
+
+    // same but for the starred emails
+    starred.value.emails.current = starred.value.emails.current.filter(
+      (email) => email.id !== emailId
+    )
+    if (starred.value.emails.current.length < starred.value.settings.pagination.pageSize) {
+      const nextEmail = starred.value.emails.next.shift()
+      if (nextEmail) {
+        starred.value.emails.current.push(nextEmail)
+      }
+    }
+
+    // now call the services
     await service.remove(emailId)
-    await fetchAllEmails()
-    await fetchStarredEmails()
+    await new Promise((resolve) => setTimeout(resolve, waitTime))
+    await fetchEmailsOfAll()
+    await fetchEmailsOfStarred()
   }
 
   async function setReadOne(emailId: string) {
-    const allEmail = data.value.all.emails.find((email) => email.id === emailId)
-    const starredEmail = data.value.starred.emails.find((email) => email.id === emailId)
+    const emailOfAll = all.value.emails.current.find((email) => email.id === emailId)
+    const emailOfStarred = all.value.emails.current.find((email) => email.id === emailId)
 
-    if (allEmail) {
-      allEmail.isRead = true
-      if (starredEmail) {
-        starredEmail.isRead = true
+    if (emailOfAll) {
+      emailOfAll.isRead = true
+      if (emailOfStarred) {
+        emailOfStarred.isRead = true
       }
-      await service.update(emailId, allEmail)
+      await service.update(emailId, emailOfAll)
     } else {
-      if (starredEmail) {
-        starredEmail.isRead = true
-        await service.update(emailId, starredEmail)
+      if (emailOfStarred) {
+        emailOfStarred.isRead = true
+        await service.update(emailId, emailOfStarred)
       }
     }
   }
 
   return {
-    data,
-    getAllEmails,
-    getStarredEmails,
-    getAllIsSelected,
-    getStarredIsSelected,
-    getAllIsRead,
-    getStarredIsRead,
-    getAllFormattedPagination,
-    getStarredFormattedPagination,
+    all,
+    starred,
+    // export all getters
+    getEmailsOfTab,
+    getFormattedPaginationOfTab,
+    getIsSelectedOfTab,
+    getIsReadOfTab,
     getEmailById,
-    fetchAllEmails,
-    fetchStarredEmails,
-    initializeData,
+    // export all actions
+    fetchEmailsOfAll,
+    fetchEmailsOfStarred,
+    initialize,
     toggleSelectedOfAll,
     toggleSelectedOfStarred,
-    toggleReadOfAllSelected,
-    toggleReadOfStarredSelected,
+    toggleSelectedOfTab,
+    toggleReadOfSelectedOfAll,
+    toggleReadOfSelectedOfStarred,
+    toggleReadOfSelectedOfTab,
     deleteSelectedOfAll,
     deleteSelectedOfStarred,
+    deleteSelectedOfTab,
     toggleSelectedOneOfAll,
     toggleSelectedOneOfStarred,
+    toggleSelectedOneOfTab,
     toggleReadOne,
     toggleStarredOne,
     deleteOne,

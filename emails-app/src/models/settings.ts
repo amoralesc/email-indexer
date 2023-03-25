@@ -8,21 +8,19 @@ class Settings {
   constructor(
     starredOnly: boolean = false,
     sortBy: [string] | null = null,
-    page: number = 1,
-    pageSize: number = 50,
-    total: number = 0
+    pagination = new Pagination()
   ) {
     this.starredOnly = starredOnly
     this.sortBy = sortBy
-    this.pagination = new Pagination(page, pageSize, total)
+    this.pagination = pagination
   }
 
-  getFormattedSettings = () => {
+  getFormattedSettings = (): string => {
     let str =
       'page=' +
       this.pagination.page +
       '&pageSize=' +
-      this.pagination.pageSize +
+      this.pagination.pageSize * 2 +
       '&starredOnly=' +
       this.starredOnly
     if (this.sortBy !== null && this.sortBy.length > 0) {
