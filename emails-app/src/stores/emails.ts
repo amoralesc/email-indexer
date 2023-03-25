@@ -179,6 +179,11 @@ export const useEmailsStore = defineStore('emails', () => {
   }
 
   async function deleteSelectedOfAll() {
+    // get the ids to remove first
+    const ids = all.value.emails.current
+      .filter((email) => email.isSelected)
+      .map((email) => email.id)
+
     // filter out the emails that are selected
     all.value.emails.current = all.value.emails.current.filter((email) => !email.isSelected)
     // fill current page with next page top emails until current page is full
@@ -195,10 +200,6 @@ export const useEmailsStore = defineStore('emails', () => {
     // this is done in this order because the service is slow
     // to register the delete changes and needs to be waited on
     // so the re-fetching of the emails works properly
-    const ids = all.value.emails.current
-      .filter((email) => email.isSelected)
-      .map((email) => email.id)
-
     await service.removeMany(ids)
     await new Promise((resolve) => setTimeout(resolve, waitTime))
     await fetchEmailsOfAll()
@@ -206,6 +207,10 @@ export const useEmailsStore = defineStore('emails', () => {
   }
 
   async function deleteSelectedOfStarred() {
+    const ids = starred.value.emails.current
+      .filter((email) => email.isSelected)
+      .map((email) => email.id)
+
     starred.value.emails.current = starred.value.emails.current.filter((email) => !email.isSelected)
     while (starred.value.emails.current.length < starred.value.settings.pagination.pageSize) {
       const nextEmail = starred.value.emails.next.shift()
@@ -215,10 +220,6 @@ export const useEmailsStore = defineStore('emails', () => {
         break
       }
     }
-
-    const ids = starred.value.emails.current
-      .filter((email) => email.isSelected)
-      .map((email) => email.id)
 
     await service.removeMany(ids)
     await new Promise((resolve) => setTimeout(resolve, waitTime))
@@ -248,7 +249,7 @@ export const useEmailsStore = defineStore('emails', () => {
     }
   }
 
-  function toggleSelectedOneOfTab(tab: string, emailId: string) {
+  function toggleSelectedOneOfTab(emailId: string, tab: string) {
     if (tab === 'all') {
       toggleSelectedOneOfAll(emailId)
     } else {
