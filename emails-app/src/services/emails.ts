@@ -20,8 +20,10 @@ const searchByQuery = async (query: Query, settings: Settings): Promise<Response
   return response.data
 }
 
-const searchByQueryString = async (query: string, settings: Settings): Promise<Response> => {
-  const response = await axios.get(`${baseUrl}/query?q=${query}&` + settings.getFormattedSettings())
+const searchByQueryString = async (queryString: string, settings: Settings): Promise<Response> => {
+  const response = await axios.get(
+    `${baseUrl}/query?q=${queryString}&` + settings.getFormattedSettings()
+  )
   return response.data
 }
 

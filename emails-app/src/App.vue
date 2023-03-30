@@ -1,15 +1,26 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import SearchBar from './components/SearchBar.vue'
+import { RouterView, useRouter } from 'vue-router'
+
+import { useEmailsStore } from './stores'
+
+import SearchBarView from './views/SearchBarView.vue'
+
+const router = useRouter()
+const emailsStore = useEmailsStore()
+
+const onClickTitle = async () => {
+  await emailsStore.initialize()
+  router.push({ name: 'home' })
+}
 </script>
 
 <template>
   <header>
-    <div class="title">
+    <div class="title" @click="onClickTitle()">
       <img alt="App logo" class="logo" src="@/assets/logo.svg" width="30" height="30" />
       <h1>Email Indexer</h1>
     </div>
-    <SearchBar />
+    <SearchBarView />
   </header>
 
   <RouterView />
@@ -43,6 +54,7 @@ footer {
 .title {
   display: flex;
   align-items: center;
+  cursor: pointer;
 }
 
 .logo {

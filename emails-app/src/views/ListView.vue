@@ -25,7 +25,7 @@ const emailsStore = useEmailsStore()
 const tabStore = useTabStore()
 
 onMounted(() => {
-  emailsStore.initialize()
+  emailsStore.fetch()
 })
 
 const tabs: Tab[] = [

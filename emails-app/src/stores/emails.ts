@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import Email from '@/models/email'
 import Settings from '@/models/settings'
+import type { Query } from '@/models/query'
 
 import service from '@/services'
 
@@ -14,6 +15,12 @@ interface EmailState {
   isSelected: boolean
   isRead: boolean
   settings: Settings
+}
+
+enum SearchTypeState {
+  NONE = 'none',
+  QUERY = 'query',
+  QUERY_STRING = 'queryString'
 }
 
 const waitTime = 1000
@@ -40,6 +47,12 @@ export const useEmailsStore = defineStore('emails', () => {
     settings: new Settings(true)
   } as EmailState)
 
+  const queryString = ref('')
+
+  const query = ref({} as Query)
+
+  const searchType = ref(SearchTypeState.NONE)
+
   // getters
 
   const getEmailById = (emailId: string): Email | undefined => {
@@ -48,6 +61,14 @@ export const useEmailsStore = defineStore('emails', () => {
       return email
     }
     return starred.value.emails.current.find((email) => email.id === emailId)
+  }
+
+  const getQuery = (): Query => {
+    return query.value
+  }
+
+  const getQueryString = (): string => {
+    return queryString.value
   }
 
   const getEmailsOfTab = (tab: string): Email[] => {
@@ -95,7 +116,14 @@ export const useEmailsStore = defineStore('emails', () => {
   // actions
 
   async function fetchEmailsOfAll() {
-    const response = await service.getAll(all.value.settings)
+    let response
+    if (searchType.value === SearchTypeState.NONE) {
+      response = await service.getAll(all.value.settings)
+    } else if (searchType.value === SearchTypeState.QUERY) {
+      response = await service.searchByQuery(query.value, all.value.settings)
+    } else {
+      response = await service.searchByQueryString(queryString.value, all.value.settings)
+    }
 
     // the above response returns double the amount of emails
     // the first half is the current page, the second half is the next page
@@ -111,7 +139,14 @@ export const useEmailsStore = defineStore('emails', () => {
   }
 
   async function fetchEmailsOfStarred() {
-    const response = await service.getAll(starred.value.settings)
+    let response
+    if (searchType.value === SearchTypeState.NONE) {
+      response = await service.getAll(starred.value.settings)
+    } else if (searchType.value === SearchTypeState.QUERY) {
+      response = await service.searchByQuery(query.value, starred.value.settings)
+    } else {
+      response = await service.searchByQueryString(queryString.value, starred.value.settings)
+    }
 
     const emails: Email[] = []
     for (const email of response.emails) {
@@ -123,9 +158,35 @@ export const useEmailsStore = defineStore('emails', () => {
     starred.value.settings.pagination.total = response.total
   }
 
-  async function initialize() {
+  async function fetch() {
     await fetchEmailsOfAll()
     await fetchEmailsOfStarred()
+  }
+
+  async function initialize() {
+    all.value.isRead = false
+    all.value.isSelected = false
+    all.value.settings.pagination.page = 1
+
+    starred.value.isRead = false
+    starred.value.isSelected = false
+    starred.value.settings.pagination.page = 1
+
+    searchType.value = SearchTypeState.NONE
+    queryString.value = ''
+    query.value = {} as Query
+
+    await fetch()
+  }
+
+  function setQuery(q: Query) {
+    searchType.value = SearchTypeState.QUERY
+    query.value = q
+  }
+
+  function setQueryString(q: string) {
+    searchType.value = SearchTypeState.QUERY_STRING
+    queryString.value = q
   }
 
   function toggleSelectedOfAll() {
@@ -419,8 +480,12 @@ export const useEmailsStore = defineStore('emails', () => {
   return {
     all,
     starred,
+    query,
+    queryString,
     // export all getters
     getEmailById,
+    getQuery,
+    getQueryString,
     getEmailsOfTab,
     getFormattedPaginationOfTab,
     getIsSelectedOfTab,
@@ -430,7 +495,10 @@ export const useEmailsStore = defineStore('emails', () => {
     // export all actions
     fetchEmailsOfAll,
     fetchEmailsOfStarred,
+    fetch,
     initialize,
+    setQuery,
+    setQueryString,
     // toggleSelectedOfAll,
     // toggleSelectedOfStarred,
     toggleSelectedOfTab,

@@ -129,6 +129,15 @@ i:hover {
   padding: 0rem 1.5rem;
 }
 
+.email-view__content__headers {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-text);
+}
+
+.email-view__content__body {
+  margin-top: 0.75rem;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 0.75rem;
