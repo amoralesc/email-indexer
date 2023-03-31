@@ -26,21 +26,40 @@ func main() {
 	numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
 	bulkUploadSize, _ := strconv.Atoi(utils.GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
 
+	_, err := zinc.Service.CheckIndex()
+	if err != nil {
+		log.Fatal("FATAL: failed to connect to zinc: ", err)
+	}
+
 	// remove index if requested
 	if *remove {
-		log.Printf("INFO: deleting emails index (if exists)")
-		err := zinc.Service.DeleteIndex()
+		log.Println("INFO: deleting emails index (if exists)")
+		exists, err := zinc.Service.CheckIndex()
 		if err != nil {
-			log.Println("WARNING: failed to delete emails index: ", err)
+			log.Fatal("FATAL: failed to check if emails index exists: ", err)
+		}
+
+		if exists {
+			err := zinc.Service.DeleteIndex()
+			if err != nil {
+				log.Println("WARN: failed to delete emails index: ", err)
+			}
 		}
 	}
 
 	// only parse and upload emails if a directory is provided
 	if *dir != "" {
-		log.Printf("INFO: creating emails index")
-		err := zinc.Service.CreateIndex()
+		exists, err := zinc.Service.CheckIndex()
 		if err != nil {
-			log.Fatal("FATAL: failed to create emails index: ", err)
+			log.Fatal("FATAL: failed to check if emails index exists: ", err)
+		}
+
+		if !exists {
+			log.Printf("INFO: creating emails index")
+			err := zinc.Service.CreateIndex()
+			if err != nil {
+				log.Fatal("FATAL: failed to create emails index: ", err)
+			}
 		}
 
 		log.Println("INFO: starting to parse and upload emails")

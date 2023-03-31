@@ -92,7 +92,7 @@ func NewQuerySettings(sortBy string, start, size int, starredOnly bool) (*QueryS
 }
 
 // ParseQuerySortSettings parses the query sort settings to a string.
-// (only pagination and sort since starred is a filter)3
+// (only pagination and sort since starred is a filter)
 func (settings *QuerySettings) ParseQuerySortSettings() string {
 	sortFields := strings.Split(settings.Sort, ",")
 	sortFieldsStr := make([]string, len(sortFields))

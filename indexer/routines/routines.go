@@ -10,6 +10,8 @@ import (
 	"github.com/amoralesc/email-indexer/indexer/zinc"
 )
 
+// parseEmailFiles is a routine that parses emails from a channel of file paths
+// and sends them to a channel of emails.
 func parseEmailFiles(files <-chan string, emails chan<- *email.Email) {
 	for file := range files {
 		emailObj, err := email.EmailFromFile(file)
@@ -21,6 +23,7 @@ func parseEmailFiles(files <-chan string, emails chan<- *email.Email) {
 	}
 }
 
+// uploadEmails is a routine that uploads emails from a channel of emails to zinc.
 func uploadEmails(emails <-chan *email.Email, bulkUploadSize int) {
 	bulk := &zinc.BulkEmails{
 		Index:   "emails",
@@ -53,6 +56,8 @@ func uploadEmails(emails <-chan *email.Email, bulkUploadSize int) {
 	log.Printf("INFO: goroutine uploaded %d emails, exitting\n", total)
 }
 
+// ParseAndUploadEmails is the goroutine manager. It spawns a number of
+// goroutines to parse emails from files and upload them to zinc.
 func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int) {
 	// create channels for passing data between goroutines
 	files := make(chan string)
