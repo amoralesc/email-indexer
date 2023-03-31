@@ -16,7 +16,7 @@ func parseEmailFiles(files <-chan string, emails chan<- *email.Email) {
 	for file := range files {
 		emailObj, err := email.EmailFromFile(file)
 		if err != nil {
-			log.Printf("ERROR: failed to parse %v: %v", file, err)
+			log.Printf("WARN: failed to parse %v: %v", file, err)
 		} else {
 			emails <- emailObj
 		}
