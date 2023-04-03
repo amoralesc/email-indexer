@@ -20,8 +20,8 @@ func main() {
 	remove := flag.Bool("r", false, "Remove the index before starting the server.")
 	flag.Parse()
 
-	port := utils.GetenvOrDefault("PORT", "8080")
-	zinc.Service = zinc.NewZincService(fmt.Sprintf("http://localhost:%v", utils.GetenvOrDefault("ZINC_PORT", "4080")), utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"), utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"))
+	port := utils.GetenvOrDefault("PORT", "3000")
+	zinc.Service = zinc.NewZincService(fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")), utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"), utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"))
 	numUploaderWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
 	numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
 	bulkUploadSize, _ := strconv.Atoi(utils.GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
