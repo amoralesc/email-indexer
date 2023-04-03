@@ -19,7 +19,7 @@ type BulkEmails struct {
 const uploadPath = "/api/_bulkv2"
 
 // UploadEmails uploads a list of emails to the zinc server
-func (service *ZincService) UploadEmails(bulk *BulkEmails) error {
+func UploadEmails(bulk *BulkEmails, auth *ZincAuth) error {
 	// convert the struct to JSON
 	jsonBytes, err := json.Marshal(*bulk)
 	if err != nil {
@@ -27,11 +27,11 @@ func (service *ZincService) UploadEmails(bulk *BulkEmails) error {
 	}
 
 	// create the post request
-	req, err := http.NewRequest("POST", service.Url+uploadPath, bytes.NewReader(jsonBytes))
+	req, err := http.NewRequest("POST", auth.Url+uploadPath, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(service.User, service.Password)
+	req.SetBasicAuth(auth.User, auth.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	// send the request

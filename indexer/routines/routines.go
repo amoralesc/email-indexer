@@ -24,7 +24,7 @@ func parseEmailFiles(files <-chan string, emails chan<- *email.Email) {
 }
 
 // uploadEmails is a routine that uploads emails from a channel of emails to zinc.
-func uploadEmails(emails <-chan *email.Email, bulkUploadSize int) {
+func uploadEmails(emails <-chan *email.Email, bulkUploadSize int, zincAuth *zinc.ZincAuth) {
 	bulk := &zinc.BulkEmails{
 		Index:   "emails",
 		Records: make([]email.Email, bulkUploadSize),
@@ -37,7 +37,7 @@ func uploadEmails(emails <-chan *email.Email, bulkUploadSize int) {
 		parsed++
 		if parsed == bulkUploadSize {
 			log.Printf("TRACE: uploading %d emails\n", parsed)
-			err := zinc.Service.UploadEmails(bulk)
+			err := zinc.UploadEmails(bulk, zincAuth)
 			if err != nil {
 				log.Fatal("FATAL: failed to upload emails: ", err)
 			}
@@ -47,7 +47,7 @@ func uploadEmails(emails <-chan *email.Email, bulkUploadSize int) {
 	}
 	if parsed > 0 {
 		bulk.Records = bulk.Records[:parsed]
-		err := zinc.Service.UploadEmails(bulk)
+		err := zinc.UploadEmails(bulk, zincAuth)
 		if err != nil {
 			log.Fatal("FATAL: failed to upload emails: ", err)
 		}
@@ -58,7 +58,7 @@ func uploadEmails(emails <-chan *email.Email, bulkUploadSize int) {
 
 // ParseAndUploadEmails is the goroutine manager. It spawns a number of
 // goroutines to parse emails from files and upload them to zinc.
-func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int) {
+func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, zincAuth *zinc.ZincAuth) {
 	// create channels for passing data between goroutines
 	files := make(chan string)
 	emails := make(chan *email.Email)
@@ -70,7 +70,7 @@ func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers 
 		wgUploaders.Add(1)
 		go func() {
 			defer wgUploaders.Done()
-			uploadEmails(emails, bulkUploadSize)
+			uploadEmails(emails, bulkUploadSize, zincAuth)
 		}()
 	}
 

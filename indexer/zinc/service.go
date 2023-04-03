@@ -7,7 +7,7 @@ type ZincService struct {
 	Password string
 }
 
-// NewZincService creates a new zinc service (Dependency Injection).
+// NewZincService creates a new zinc service singleton.
 func NewZincService(url, user, password string) *ZincService {
 	return &ZincService{
 		Url:      url,

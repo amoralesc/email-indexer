@@ -20,12 +20,14 @@ func main() {
 	// command line flags
 	dir := flag.String("d", "", "Directory of the emails. If none is provided, the server will use already indexed emails.")
 	remove := flag.Bool("r", false, "Remove the index before starting the server.")
+	profiling := flag.Bool("p", false, "Start the profiling server.")
 	flag.Parse()
 
 	port := utils.GetenvOrDefault("PORT", "3000")
+	profilingPort := utils.GetenvOrDefault("PROFILING_PORT", "6060")
 	zinc.Service = zinc.NewZincService(fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")), utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"), utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"))
-	numUploaderWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "4"))
-	numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "8"))
+	numUploaderWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "8"))
+	numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "32"))
 	bulkUploadSize, _ := strconv.Atoi(utils.GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
 
 	_, err := zinc.Service.CheckIndex()
@@ -34,10 +36,12 @@ func main() {
 	}
 
 	// start profiling server on goroutine
-	go func() {
-		log.Println("INFO: starting profiling server on port 6060")
-		log.Println(http.ListenAndServe(":6060", nil))
-	}()
+	if *profiling {
+		go func() {
+			log.Println("INFO: starting profiling server on port ", profilingPort)
+			log.Println(http.ListenAndServe(fmt.Sprintf(":%v", profilingPort), nil))
+		}()
+	}
 
 	// remove index if requested
 	if *remove {
@@ -72,7 +76,12 @@ func main() {
 
 		log.Println("INFO: starting to parse and upload emails")
 		start := time.Now()
-		routines.ParseAndUploadEmails(dir, numUploaderWorkers, numParserWorkers, bulkUploadSize)
+		zincAuth := &zinc.ZincAuth{
+			Url:      fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")),
+			User:     utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"),
+			Password: utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"),
+		}
+		routines.ParseAndUploadEmails(dir, numUploaderWorkers, numParserWorkers, bulkUploadSize, zincAuth)
 		log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 	}
 
