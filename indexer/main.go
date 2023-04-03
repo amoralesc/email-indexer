@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/amoralesc/email-indexer/indexer/router"
 	"github.com/amoralesc/email-indexer/indexer/routines"
 	"github.com/amoralesc/email-indexer/indexer/utils"
@@ -30,6 +32,12 @@ func main() {
 	if err != nil {
 		log.Fatal("FATAL: failed to connect to zinc: ", err)
 	}
+
+	// start profiling server on goroutine
+	go func() {
+		log.Println("INFO: starting profiling server on port 6060")
+		log.Println(http.ListenAndServe(":6060", nil))
+	}()
 
 	// remove index if requested
 	if *remove {
