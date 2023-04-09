@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  indexer:
+    build:
+      context: .
+      dockerfile: ./docker/indexer/Dockerfile
+    command: /start-indexer
+    volumes:
+      - ./emails:/app/emails
+    env_file:
+      - .env
+      - .indexer.env
+    ports:
+      - 6060:6060
+    depends_on:
+      - zinc
+    restart: on-failure
+
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/indexer/Dockerfile
+    command: /start-server
+    env_file:
+      - .env
+      - .server.env
+    ports:
+      - 6061:6061
+      - 3000:3000
+    depends_on:
+      - zinc
+    restart: unless-stopped
+
+  zinc:
+    image: public.ecr.aws/zinclabs/zinc:latest
+    volumes:
+      - zinc-data:/data
+    environment:
+      - ZINC_FIRST_ADMIN_USER=${ZINC_ADMIN_USER}
+      - ZINC_FIRST_ADMIN_PASSWORD=${ZINC_ADMIN_PASSWORD}
+      - ZINC_SERVER_PORT=${ZINC_PORT}
+      - ZINC_DATA_PATH=/data
+    ports:
+      - 4080:4080
+    restart: unless-stopped
+
+volumes:
+  zinc-data: {}

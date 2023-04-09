@@ -1,0 +1,7 @@
+emails/
+emails-app/
+.vscode
+*.png
+.gitignore
+go.work
+README.md

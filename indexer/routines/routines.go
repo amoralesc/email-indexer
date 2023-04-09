@@ -58,7 +58,7 @@ func uploadEmails(emails <-chan *email.Email, bulkUploadSize int, zincAuth *zinc
 
 // ParseAndUploadEmails is the goroutine manager. It spawns a number of
 // goroutines to parse emails from files and upload them to zinc.
-func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, zincAuth *zinc.ZincAuth) {
+func ParseAndUploadEmails(dir string, numUploaderWorkers int, numParserWorkers int, bulkUploadSize int, zincAuth *zinc.ZincAuth) {
 	// create channels for passing data between goroutines
 	files := make(chan string)
 	emails := make(chan *email.Email)
@@ -86,7 +86,7 @@ func ParseAndUploadEmails(dir *string, numUploaderWorkers int, numParserWorkers 
 	}
 
 	// walk directory and send file paths to channel
-	err := filepath.WalkDir(*dir, func(path string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
