@@ -27,7 +27,7 @@ services:
       - .server.env
     ports:
       - 6061:6061
-      - 3000:3000
+      - ${API_PORT}:${API_PORT}
     depends_on:
       - zinc
     restart: unless-stopped
@@ -42,7 +42,7 @@ services:
       - ZINC_SERVER_PORT=${ZINC_PORT}
       - ZINC_DATA_PATH=/data
     ports:
-      - 4080:4080
+      - ${ZINC_PORT}:${ZINC_PORT}
     restart: unless-stopped
 
 volumes:

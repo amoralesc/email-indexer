@@ -1,5 +1,6 @@
 emails/
 emails-app/
+indexer/indexer
 .vscode
 *.png
 .gitignore

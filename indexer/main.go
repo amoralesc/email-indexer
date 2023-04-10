@@ -24,12 +24,13 @@ func main() {
 	flag.Parse()
 
 	// env vars
-	emails_dir := utils.GetenvOrDefault("EMAILS_DIR", "emails")
+	emailsDir := utils.GetenvOrDefault("EMAILS_DIR", "emails")
 	removeIndex, _ := strconv.ParseBool(utils.GetenvOrDefault("REMOVE_INDEX", "false"))
+	preventUploadIfIndexExists, _ := strconv.ParseBool(utils.GetenvOrDefault("PREVENT_UPLOAD_IF_INDEX_EXISTS", "false"))
 
 	zinc.StartZincService(fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")), utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"), utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"))
 
-	_, err := zinc.Service.CheckIndex()
+	indexExists, err := zinc.Service.CheckIndex()
 	if err != nil {
 		log.Fatal("FATAL: failed to connect to zinc: ", err)
 	}
@@ -45,30 +46,27 @@ func main() {
 
 	// remove index if requested
 	if removeIndex {
-		log.Println("INFO: deleting emails index (if exists)")
-		exists, err := zinc.Service.CheckIndex()
-		if err != nil {
-			log.Fatal("FATAL: failed to check if emails index exists: ", err)
-		}
-
-		if exists {
+		if indexExists {
+			log.Println("INFO: deleting emails index")
 			err := zinc.Service.DeleteIndex()
 			if err != nil {
-				log.Println("WARN: failed to delete emails index:", err)
+				log.Panic("ERROR: failed to delete emails index:", err)
 			}
 		}
 	}
 
 	// index the emails
 	if *index {
-		// only parse and upload emails if a directory is provided
-		if emails_dir != "" {
-			exists, err := zinc.Service.CheckIndex()
-			if err != nil {
-				log.Fatal("FATAL: failed to check if emails index exists: ", err)
-			}
+		// recheck index, might have been deleted
+		indexExists, err := zinc.Service.CheckIndex()
+		if err != nil {
+			log.Fatal("FATAL: failed to check if emails index exists: ", err)
+		}
 
-			if !exists {
+		if preventUploadIfIndexExists && indexExists {
+			log.Println("INFO: emails index already exists, skipping upload")
+		} else {
+			if !indexExists {
 				log.Printf("INFO: creating emails index")
 				err := zinc.Service.CreateIndex()
 				if err != nil {
@@ -76,7 +74,7 @@ func main() {
 				}
 			}
 
-			log.Println("INFO: starting to parse and upload emails at dir:", emails_dir)
+			log.Println("INFO: starting to parse and upload emails at dir:", emailsDir)
 			start := time.Now()
 			zincAuth := &zinc.ZincAuth{
 				Url:      fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")),
@@ -86,10 +84,8 @@ func main() {
 			numUploaderWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "32"))
 			numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "128"))
 			bulkUploadSize, _ := strconv.Atoi(utils.GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
-			routines.ParseAndUploadEmails(emails_dir, numUploaderWorkers, numParserWorkers, bulkUploadSize, zincAuth)
+			routines.ParseAndUploadEmails(emailsDir, numUploaderWorkers, numParserWorkers, bulkUploadSize, zincAuth)
 			log.Printf("INFO: finished uploading in %v\n", time.Since(start))
-		} else {
-			log.Fatal("FATAL: no emails directory provided: (env EMAILS_DIR is empty)")
 		}
 	}
 
