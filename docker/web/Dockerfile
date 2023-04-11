@@ -20,5 +20,5 @@ FROM nginx:stable-alpine3.17
 
 RUN mkdir /app
 
-COPY --from=builder /app/build /app
+COPY --from=builder /app/dist /app
 COPY ./docker/web/nginx.conf /etc/nginx/nginx.conf

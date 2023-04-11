@@ -5,7 +5,7 @@ import type Settings from '@/models/settings'
 import type { Response } from '@/models/response'
 import type { Query } from '@/models/query'
 
-const baseUrl = 'http://localhost:3000/api/emails'
+const baseUrl = `${import.meta.env.VITE_API_URL}/emails`
 
 const getAll = async (settings: Settings): Promise<Response> => {
   const response = await axios.get(baseUrl + '?' + settings.getFormattedSettings())
