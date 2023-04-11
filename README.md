@@ -119,8 +119,11 @@ Both back-end containers (the `api` and `indexer` containers) can be configured 
 | `PROFILING_PORT` | The port that the profiler is exposed on | `6060` |
 | `INDEXER_PROFILING_PORT` | The port that the profiler is exposed on for the `indexer` container | `6060` |
 | `API_PROFILING_PORT` | The port that the profiler is exposed on for the `api` container | `6061` |
+| `SLEEP_TIME_AFTER_INDEXING` | The seconds to sleep after the `indexer` container finishes indexing | `0` |
 
 The `ENABLE_PROFILING` variable is meant to be overriden by `INDEXER_ENABLE_PROFILING` and `API_ENABLE_PROFILING`. The `PROFILING_PORT` variable is meant to be overriden by `INDEXER_PROFILING_PORT` and `API_PROFILING_PORT`. This behavior is done automatically by the `docker-compose.yml` file.
+
+The `SLEEP_TIME_AFTER_INDEXING` variable is meant to be overriden in the `.indexer.env` file. This variable is useful for debugging the `indexer` container. It allows the `indexer` container to sleep after it finishes indexing. This allows the CPU profiling tool to keep running after the indexing finishes. If this variable is set to `0`, the `indexer` container will exit immediately after it finishes indexing and the CPU profiling tool might not have finished running, which will cause the profiling tool to fail.
 
 #### Running the profiling tool
 
@@ -182,6 +185,7 @@ Overrides the default values of the `.env` file for the `indexer` container.
 | --- | --- | --- |
 | `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
 | `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |
+| `SLEEP_TIME_AFTER_INDEXING` | The seconds to sleep after the `indexer` container finishes indexing | `0` |
 
 ## License
 

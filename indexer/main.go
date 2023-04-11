@@ -92,6 +92,12 @@ func main() {
 	}
 
 	if !*server {
+		waitSeconds, _ := strconv.Atoi(utils.GetenvOrDefault("SLEEP_TIME_AFTER_INDEXING", "0"))
+		if waitSeconds > 0 {
+			log.Printf("INFO: sleeping for %v seconds", waitSeconds)
+			time.Sleep(time.Duration(waitSeconds) * time.Second)
+		}
+
 		log.Printf("INFO: exiting (no server requested, use -s to start the server)")
 		return // exit with code 0
 	}
