@@ -19,12 +19,11 @@ import (
 func main() {
 	// command line flags
 	index := flag.Bool("i", false, "Index the files in the emails directory (env EMAILS_DIR) to zinc.")
-	profiling := flag.Bool("p", false, "Start the profiling server.")
 	server := flag.Bool("s", false, "Start the emails server (REST API).")
 	flag.Parse()
 
 	// env vars
-	emailsDir := utils.GetenvOrDefault("EMAILS_DIR", "emails")
+	enableProfiling, _ := strconv.ParseBool(utils.GetenvOrDefault("ENABLE_PROFILING", "false"))
 	removeIndex, _ := strconv.ParseBool(utils.GetenvOrDefault("REMOVE_INDEX", "false"))
 	preventUploadIfIndexExists, _ := strconv.ParseBool(utils.GetenvOrDefault("PREVENT_UPLOAD_IF_INDEX_EXISTS", "false"))
 
@@ -36,7 +35,7 @@ func main() {
 	}
 
 	// start profiling server on goroutine
-	if *profiling {
+	if enableProfiling {
 		profilingPort := utils.GetenvOrDefault("PROFILING_PORT", "6060")
 		go func() {
 			log.Println("INFO: starting profiling server on port", profilingPort)
@@ -66,6 +65,7 @@ func main() {
 		if preventUploadIfIndexExists && indexExists {
 			log.Println("INFO: emails index already exists, skipping upload")
 		} else {
+
 			if !indexExists {
 				log.Printf("INFO: creating emails index")
 				err := zinc.Service.CreateIndex()
@@ -74,8 +74,7 @@ func main() {
 				}
 			}
 
-			log.Println("INFO: starting to parse and upload emails at dir:", emailsDir)
-			start := time.Now()
+			emailsDir := utils.GetenvOrDefault("EMAILS_DIR", "emails")
 			zincAuth := &zinc.ZincAuth{
 				Url:      fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")),
 				User:     utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"),
@@ -84,6 +83,9 @@ func main() {
 			numUploaderWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_UPLOADER_WORKERS", "32"))
 			numParserWorkers, _ := strconv.Atoi(utils.GetenvOrDefault("NUM_PARSER_WORKERS", "128"))
 			bulkUploadSize, _ := strconv.Atoi(utils.GetenvOrDefault("BULK_UPLOAD_SIZE", "5000"))
+
+			log.Println("INFO: starting to parse and upload emails at dir:", emailsDir)
+			start := time.Now()
 			routines.ParseAndUploadEmails(emailsDir, numUploaderWorkers, numParserWorkers, bulkUploadSize, zincAuth)
 			log.Printf("INFO: finished uploading in %v\n", time.Since(start))
 		}

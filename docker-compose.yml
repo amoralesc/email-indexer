@@ -7,7 +7,7 @@ services:
       dockerfile: ./docker/indexer/Dockerfile
     command: /start-indexer
     volumes:
-      - ./emails:/app/emails
+      - ./${EMAILS_DIR}:/app/${EMAILS_DIR}
     env_file:
       - .env
       - .indexer.env
