@@ -4,7 +4,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: ./docker/web/Dockerfile
+      dockerfile: ./docker/local/web/Dockerfile
     networks:
       - network
     ports:
@@ -16,7 +16,7 @@ services:
   indexer:
     build:
       context: .
-      dockerfile: ./docker/indexer/Dockerfile
+      dockerfile: ./docker/local/indexer/Dockerfile
     command: /start-indexer
     volumes:
       - ./${EMAILS_DIR}:/app/${EMAILS_DIR}
@@ -24,7 +24,6 @@ services:
       - network
     env_file:
       - .env
-      - .indexer.env
     environment:
       - ENABLE_PROFILING=${INDEXER_ENABLE_PROFILING}
     ports:
@@ -36,7 +35,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: ./docker/indexer/Dockerfile
+      dockerfile: ./docker/local/indexer/Dockerfile
     command: /start-api
     networks:
       - network

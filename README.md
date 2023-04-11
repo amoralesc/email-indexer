@@ -102,8 +102,6 @@ Other environment variables control the behavior of the `indexer` container, spe
 | `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
 | `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists. This is useful for preventing re-upload of emails when the attached directory hasn't changed | `true` |
 
-The `REMOVE_INDEX_IF_EXISTS` and `SKIP_UPLOAD_IF_INDEX_EXISTS` variables are meant to be overriden in the `.indexer.env` file.
-
 ### Profiling
 
 The application can be configured to enable a profiling server. This is useful for debugging performance issues. The profiler is the default Go profiler, which is based on the [pprof](
@@ -123,7 +121,7 @@ Both back-end containers (the `api` and `indexer` containers) can be configured 
 
 The `ENABLE_PROFILING` variable is meant to be overriden by `INDEXER_ENABLE_PROFILING` and `API_ENABLE_PROFILING`. The `PROFILING_PORT` variable is meant to be overriden by `INDEXER_PROFILING_PORT` and `API_PROFILING_PORT`. This behavior is done automatically by the `docker-compose.yml` file.
 
-The `SLEEP_TIME_AFTER_INDEXING` variable is meant to be overriden in the `.indexer.env` file. This variable is useful for debugging the `indexer` container. It allows the `indexer` container to sleep after it finishes indexing. This allows the CPU profiling tool to keep running after the indexing finishes. If this variable is set to `0`, the `indexer` container will exit immediately after it finishes indexing and the CPU profiling tool might not have finished running, which will cause the profiling tool to fail.
+The `SLEEP_TIME_AFTER_INDEXING` variable is useful for debugging the `indexer` container. It allows the `indexer` container to sleep after it finishes indexing. This allows the CPU profiling tool to keep running after the indexing finishes. If this variable is set to `0`, the `indexer` container will exit immediately after it finishes indexing and the CPU profiling tool might not have finished running, which will cause the profiling tool to fail.
 
 #### Running the profiling tool
 
@@ -151,9 +149,7 @@ More info about the Go profiler can be found in the [Go's blog about pprof](http
 
 ### Environment variables
 
-As shown above, application defines multiple environment variables. The following tables describe each variable and its default value.
-
-#### `.env` file
+As shown above, application defines multiple environment variables in the `.env` file. The following tables describe each variable and its default value.
 
 | Variable | Description | Default |
 | --- | --- | --- |
@@ -163,9 +159,6 @@ As shown above, application defines multiple environment variables. The followin
 | `ZINC_HOST` | The host where the other containers find Zinc. WARNING: not supposed to be changed | `zinc` |
 | `ZINC_PORT` | The port that the Zinc server is exposed on | `4080` |
 | `ZINC_RETRY_INTERVAL` | The containers' entrypoint use it to retry connecting to the Zinc server (in seconds) | `5` |
-| `EMAILS_DIR` | The directory where the emails are stored. WARNING: not supposed to be changed, this may break the app | `emails` |
-| `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
-| `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |
 | `ENABLE_PROFILING` | If `true`, the containers enable profiling | `false` |
 | `INDEXER_ENABLE_PROFILING` | If `true`, the `indexer` container enables profiling | `false` |
 | `API_ENABLE_PROFILING` | If `true`, the `api` container enables profiling | `false` |
@@ -173,18 +166,12 @@ As shown above, application defines multiple environment variables. The followin
 | `INDEXER_PROFILING_PORT` | The port that the profiler is exposed on for the `indexer` container | `6060` |
 | `API_PROFILING_PORT` | The port that the profiler is exposed on for the `api` container | `6061` |
 | `API_PORT` | The port that the API container is exposed on | `3000` |
+| `EMAILS_DIR` | The directory where the emails are stored. WARNING: not supposed to be changed, this may break the app | `emails` |
+| `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
+| `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |
 | `NUM_PARSER_WORKERS` | Number of goroutines spawned to parse email files into JSON | `128` |
 | `NUM_UPLOADER_WORKERS` | Number of goroutines spawned to upload JSON emails from the indexer to Zinc | `32` |
 | `BULK_UPLOAD_SIZE` | Number of emails sent in a single bulk upload operation to Zinc | `5000` |
-
-#### `.indexer.env` file
-
-Overrides the default values of the `.env` file for the `indexer` container.
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
-| `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |
 | `SLEEP_TIME_AFTER_INDEXING` | The seconds to sleep after the `indexer` container finishes indexing | `0` |
 
 ## License

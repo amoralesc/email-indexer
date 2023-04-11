@@ -27,9 +27,9 @@ COPY --from=builder /app/app .
 # copy certs from the builder image
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-COPY ./docker/indexer/entrypoint /entrypoint
-COPY ./docker/indexer/start-indexer /start-indexer
-COPY ./docker/indexer/start-api /start-api
+COPY ./docker/local/indexer/entrypoint /entrypoint
+COPY ./docker/local/indexer/start-indexer /start-indexer
+COPY ./docker/local/indexer/start-api /start-api
 
 RUN chmod +x /entrypoint && \
     chmod +x /start-indexer && \
