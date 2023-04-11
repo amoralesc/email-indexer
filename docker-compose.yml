@@ -62,6 +62,7 @@ services:
       - ZINC_FIRST_ADMIN_PASSWORD=${ZINC_ADMIN_PASSWORD}
       - ZINC_SERVER_PORT=${ZINC_PORT}
       - ZINC_DATA_PATH=/data
+      - GIN_MODE=release
     ports:
       - ${ZINC_PORT}:${ZINC_PORT}
     restart: unless-stopped
