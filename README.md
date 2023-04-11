@@ -15,7 +15,22 @@ This project is a full-stack application that indexes emails for visualization. 
 - [Go](https://golang.org/)
 - [Zinc Search](https://github.com/zincsearch/zincsearch)
 
-## Building the application
+## Requirements (local development)
+
+The application is configured to run locally using Docker via [Docker Compose](https://docs.docker.com/compose/compose-file/). It's recommended to use Docker Engine, although you may use Docker Desktop.
+
+- [Docker Engine](https://docs.docker.com/engine/install/)
+- [Docker Desktop](https://docs.docker.com/get-docker/)
+
+Check that the docker daemon is running and the version with:
+
+```sh
+docker version
+```
+
+The `docker-compose.yml` file specification requires a version `19.03.0+`.
+
+## Running the application locally
 
 Get the code:
 
@@ -24,61 +39,123 @@ git clone https://github.com/amoralesc/email-indexer.git
 cd email-indexer
 ```
 
-### Zinc Search
-
-Zinc Search is a search engine server that is used to index and search the emails. To run the application, you need to have Zinc Search installed and running.
-
-Download the appropiate binary for your OS from the [Zinc Search releases page](https://github.com/zincsearch/zincsearch/releases) and run it with:
+Copy the `*.env.example` files into their respective `*.env` files and update the values as needed (see [Configuration](#configuration)):
 
 ```sh
-mkdir data
-ZINC_FIRST_ADMIN_USER=admin ZINC_FIRST_ADMIN_PASSWORD=Complexpass#123 ./zincsearch
+cp .env.example .env
+cp .api.env.example .api.env
+cp .indexer.env.example .indexer.env
 ```
 
-Admin User and Password are defined by you.
-
-## Running the application
-
-### Back-end
-
-After the Zinc Search server is running, you can run the back-end server:
+Get the Enron emails database (or any other emails, just place them in the `emails` directory)
 
 ```sh
-cd indexer
-go run .
+# you may need to: chmod +x get-enron-emails.sh
+./get-enron-emails.sh
 ```
 
-The application defines the flags:
-
-- `-dir`: Directory to look for email files recursively. Default: `none`, will not index emails.
-- `-r`: Remove the existing index. Default: `false`, used to re-index the emails (creating a new index with the `-dir` flag).
-
-It also defines environment variables:
-
-- 'PORT': Port to run the server on. Default: `8080`.
-- 'ZINC_PORT': Port where the Zinc Search server is running. Default: `4080`.
-- 'NUM_UPLOADER_WORKERS': Number of concurrent workers to use for uploading emails to Zinc Search. Default: `4`. This parameter can be fine-tuned to improve performance.
-- 'NUM_PARSER_WORKERS': Number of concurrent workers to use for parsing emails. Default: `8`. This parameter can be fine-tuned to improve performance.
-- 'BULK_UPLOAD_SIZE': Number of emails to upload to Zinc Search in a single request. Default: `5000`. This parameter can be fine-tuned to improve performance.
-
-### Front-end
-
-After the back-end server is running, you can run the front-end server:
+Build the Docker images:
 
 ```sh
-cd emails-app
+docker compose build
 ```
 
-Install dependencies:
+Run the application:
 
 ```sh
-npm install
+docker compose up -d
 ```
 
-Run the server:
+The application should be running at [http://localhost:8080](http://localhost:8080).
+
+Check out the logs with:
 
 ```sh
-npm run dev
+docker compose logs -f
 ```
 
-Check it out at: http://localhost:5173/
+## Configuration
+
+### Email files
+
+The application expects the emails to be in the `emails` directory. The emails should be in the syntax RFC 5322 / RFC 6532. The application will recursively search for any files in the `emails` directory. Any valid email file will be indexed.
+
+The `emails` directory is directly mounted into the `indexer` container as a volume. The `indexer` container will then parse and upload theses emails to the Zinc server (see [Indexing](#indexing)).
+
+The environment variable `EMAILS_DIR` can be used to change the directory where the emails are stored. However, this may break the application if configured incorrectly.
+
+### Indexing
+
+The indexing process is done by the `indexer` container. The `indexer` container will parse the emails and upload them to the Zinc server. This process uses goroutines to speed up the indexing process.
+
+Some environment variables can be used to configure the indexing performance process. Fine tuning these variables may improve the indexing performance.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `NUM_PARSER_WORKERS` | Number of goroutines spawned to parse email files into JSON | `128` |
+| `NUM_UPLOADER_WORKERS` | Number of goroutines spawned to upload JSON emails from the indexer to Zinc | `32` |
+| `BULK_UPLOAD_SIZE` | Number of emails sent in a single bulk upload operation to Zinc | `5000` |
+
+Other environment variables control the behavior of the `indexer` container, specially when the container is restarted.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
+| `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists. This is useful for preventing re-upload of emails when the attached directory hasn't changed | `true` |
+
+The `REMOVE_INDEX_IF_EXISTS` and `SKIP_UPLOAD_IF_INDEX_EXISTS` variables are meant to be overriden in the `.indexer.env` file.
+
+### Profiling
+
+The application can be configured to enable a profiling server. This is useful for debugging performance issues. The profiler is the default Go profiler, which is based on the [pprof](
+https://golang.org/pkg/net/http/pprof/) package.
+
+Both back-end containers (the `api` and `indexer` containers) can be configured to enable the profiler. The profiler is disabled by default.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `ENABLE_PROFILING` | If `true`, the containers enable profiling | `false` |
+| `INDEXER_ENABLE_PROFILING` | If `true`, the `indexer` container enables profiling | `false` |
+| `API_ENABLE_PROFILING` | If `true`, the `api` container enables profiling | `false` |
+| `PROFILING_PORT` | The port that the profiler is exposed on | `6060` |
+| `INDEXER_PROFILING_PORT` | The port that the profiler is exposed on for the `indexer` container | `6060` |
+| `API_PROFILING_PORT` | The port that the profiler is exposed on for the `api` container | `6061` |
+
+The `ENABLE_PROFILING` variable is meant to be overriden by `INDEXER_ENABLE_PROFILING` and `API_ENABLE_PROFILING`. The `PROFILING_PORT` variable is meant to be overriden by `INDEXER_PROFILING_PORT` and `API_PROFILING_PORT`. This behavior is done automatically by the `docker-compose.yml` file.
+
+### Environment variables
+
+As shown above, application defines multiple environment variables. The following tables describe each variable and its default value.
+
+#### `.env` file
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `WEB_PORT` | The port that the web app container is exposed on | `8080` |
+| `ZINC_ADMIN_USER` | The username for the Zinc server admin user | `admin` |
+| `ZINC_ADMIN_PASSWORD` | The password for the Zinc server admin user | `Complexpass#123` |
+| `ZINC_HOST` | The host where the other containers find Zinc. WARNING: not supposed to be changed | `zinc` |
+| `ZINC_PORT` | The port that the Zinc server is exposed on | `4080` |
+| `ZINC_RETRY_INTERVAL` | The containers' entrypoint use it to retry connecting to the Zinc server (in seconds) | `5` |
+| `EMAILS_DIR` | The directory where the emails are stored. WARNING: not supposed to be changed, this may break the app | `emails` |
+| `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
+| `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |
+| `ENABLE_PROFILING` | If `true`, the containers enable profiling | `false` |
+| `INDEXER_ENABLE_PROFILING` | If `true`, the `indexer` container enables profiling | `false` |
+| `API_ENABLE_PROFILING` | If `true`, the `api` container enables profiling | `false` |
+| `PROFILING_PORT` | The port that the profiler is exposed on | `6060` |
+| `INDEXER_PROFILING_PORT` | The port that the profiler is exposed on for the `indexer` container | `6060` |
+| `API_PROFILING_PORT` | The port that the profiler is exposed on for the `api` container | `6061` |
+| `API_PORT` | The port that the API container is exposed on | `3000` |
+| `NUM_PARSER_WORKERS` | Number of goroutines spawned to parse email files into JSON | `128` |
+| `NUM_UPLOADER_WORKERS` | Number of goroutines spawned to upload JSON emails from the indexer to Zinc | `32` |
+| `BULK_UPLOAD_SIZE` | Number of emails sent in a single bulk upload operation to Zinc | `5000` |
+
+#### `.indexer.env` file
+
+Overrides the default values of the `.env` file for the `indexer` container.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
+| `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |

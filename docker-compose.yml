@@ -25,6 +25,8 @@ services:
     env_file:
       - .env
       - .indexer.env
+    environment:
+      - ENABLE_PROFILING=${INDEXER_ENABLE_PROFILING}
     ports:
       - ${INDEXER_PROFILING_PORT}:${INDEXER_PROFILING_PORT}
     depends_on:
@@ -40,7 +42,8 @@ services:
       - network
     env_file:
       - .env
-      - .api.env
+    environment:
+      - ENABLE_PROFILING=${API_ENABLE_PROFILING}
     ports:
       - ${API_PORT}:${API_PORT}
       - ${API_PROFILING_PORT}:${API_PROFILING_PORT}
