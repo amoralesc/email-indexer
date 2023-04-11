@@ -24,7 +24,7 @@ func main() {
 
 	// env vars
 	enableProfiling, _ := strconv.ParseBool(utils.GetenvOrDefault("ENABLE_PROFILING", "false"))
-	removeIndex, _ := strconv.ParseBool(utils.GetenvOrDefault("REMOVE_INDEX", "false"))
+	removeIndex, _ := strconv.ParseBool(utils.GetenvOrDefault("REMOVE_INDEX_IF_EXISTS", "false"))
 	preventUploadIfIndexExists, _ := strconv.ParseBool(utils.GetenvOrDefault("SKIP_UPLOAD_IF_INDEX_EXISTS", "true"))
 
 	zinc.StartZincService(fmt.Sprintf("http://%v:%v", utils.GetenvOrDefault("ZINC_HOST", "localhost"), utils.GetenvOrDefault("ZINC_PORT", "4080")), utils.GetenvOrDefault("ZINC_ADMIN_USER", "admin"), utils.GetenvOrDefault("ZINC_ADMIN_PASSWORD", "Complexpass#123"))
