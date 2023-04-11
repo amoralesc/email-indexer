@@ -15,7 +15,7 @@ RUN go mod tidy && \
     go build -o app
 
 #######################################
-# Build the production image
+# Create the production image
 #######################################
 
 FROM alpine:3.17
