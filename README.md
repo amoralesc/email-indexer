@@ -1,6 +1,6 @@
 # Email Indexer
 
-This project is a full-stack application that indexes emails for visualization. While the emails can be any type of email, the application was made with the [Enron emails database](http://www.cs.cmu.edu/~enron/enron_mail_20110402.tgz) in mind.
+This project is a full-stack application that indexes emails for visualization. While the emails can be any type of email, the application was made with the [Enron emails database](https://en.wikipedia.org/wiki/Enron_Corpus) in mind.
 
 ## Tech Stack
 
