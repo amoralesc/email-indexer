@@ -159,3 +159,7 @@ Overrides the default values of the `.env` file for the `indexer` container.
 | --- | --- | --- |
 | `REMOVE_INDEX_IF_EXISTS` | If `true`, the `indexer` container will remove the index from Zinc if it already exists | `false` |
 | `SKIP_UPLOAD_IF_INDEX_EXISTS` | If `true`, the `indexer` container will skip uploading emails to Zinc if the index already exists | `true` |
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
