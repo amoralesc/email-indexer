@@ -43,7 +43,6 @@ Copy the `*.env.example` files into their respective `*.env` files and update th
 
 ```sh
 cp .env.example .env
-cp .api.env.example .api.env
 cp .indexer.env.example .indexer.env
 ```
 
