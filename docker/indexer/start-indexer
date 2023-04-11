@@ -5,4 +5,4 @@ set -o pipefail
 set -o nounset
 
 # Run the binary in indexing mode
-./indexer -i
+./app -i

@@ -18,17 +18,17 @@ services:
       - zinc
     restart: on-failure
 
-  web:
+  api:
     build:
       context: .
       dockerfile: ./docker/indexer/Dockerfile
-    command: /start-server
+    command: /start-api
     env_file:
       - .env
-      - .server.env
+      - .api.env
     ports:
       - ${API_PORT}:${API_PORT}
-      # .server.env defines this port as PROFILING_PORT
+      # .api.env defines this port as PROFILING_PORT
       - 6061:6061
     depends_on:
       - zinc

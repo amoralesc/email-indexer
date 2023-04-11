@@ -1,8 +1,7 @@
 emails/
-emails-app/
 indexer/indexer
 .vscode
 *.png
 .gitignore
-go.work
-README.md
+**/node_modules
+**/dist

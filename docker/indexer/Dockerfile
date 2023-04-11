@@ -1,34 +1,41 @@
 #######################################
-# Build the indexer binary
+# Build the app binary
 #######################################
 
 FROM golang:1.20-alpine3.17 AS builder
 
 WORKDIR /app
+
+RUN update-ca-certificates
+
 # copy insides of ./indexer/ to /app
 COPY ./indexer/ .
-# name of the built binary is "indexer"
+# name of the built binary is "app"
 RUN go mod tidy && \
-    go build -o indexer 
+    go build -o app
 
 #######################################
-# Build the indexer image
+# Build the production image
 #######################################
 
 FROM alpine:3.17
 
 WORKDIR /app
 
-COPY --from=builder /app/indexer .
+# copy binary
+COPY --from=builder /app/app .
+# copy certs from the builder image
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 COPY ./docker/indexer/entrypoint /entrypoint
 COPY ./docker/indexer/start-indexer /start-indexer
-COPY ./docker/indexer/start-server /start-server
+COPY ./docker/indexer/start-api /start-api
 
 RUN chmod +x /entrypoint && \
     chmod +x /start-indexer && \
-    chmod +x /start-server
+    chmod +x /start-api
 
+# curl is used in the entrypoint script
 RUN apk add --no-cache curl
 
 ENTRYPOINT ["/entrypoint"]
