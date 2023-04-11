@@ -122,6 +122,30 @@ Both back-end containers (the `api` and `indexer` containers) can be configured 
 
 The `ENABLE_PROFILING` variable is meant to be overriden by `INDEXER_ENABLE_PROFILING` and `API_ENABLE_PROFILING`. The `PROFILING_PORT` variable is meant to be overriden by `INDEXER_PROFILING_PORT` and `API_PROFILING_PORT`. This behavior is done automatically by the `docker-compose.yml` file.
 
+#### Running the profiling tool
+
+The profiling tool requires `go` to be installed. Refer to the [Go installation instructions](https://go.dev/doc/install) for more information.
+
+For example, if the `INDEXER_ENABLE_PROFILING` is set to `true` and its exposed port is set to `6060`, the CPU can be profiled for 60 seconds with:
+
+```sh
+go tool pprof http://localhost:6060/debug/pprof/profile?seconds=60
+```
+
+which will activate a pprof interactive shell after 60 seconds. We then can produce a PNG graph of the CPU profile with:
+
+```sh
+(pprof) png
+```
+
+or a text report with:
+
+```sh
+(pprof) top
+```
+
+More info about the Go profiler can be found in the [Go's blog about pprof](https://go.dev/blog/pprof).
+
 ### Environment variables
 
 As shown above, application defines multiple environment variables. The following tables describe each variable and its default value.
