@@ -91,7 +91,7 @@ docker compose logs -f
 
 ### Email files
 
-The application expects the emails to be in the `emails` directory. The emails should be in the syntax RFC 5322 / RFC 6532. The application will recursively search for any files in the `emails` directory. Any valid email file will be indexed.
+The application expects the emails to be in the `emails` directoryw at the root of the project. The emails should be in the syntax RFC 5322 / RFC 6532. The application will recursively search for any files in the `emails` directory. Any valid email file will be indexed.
 
 The `emails` directory is directly mounted into the `indexer` container as a volume. The `indexer` container will then parse and upload theses emails to the Zinc server (see [Indexing](#indexing)).
 
