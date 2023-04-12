@@ -15,9 +15,24 @@ This project is a full-stack application that indexes emails for visualization. 
 - [Go](https://golang.org/)
 - [Zinc Search](https://github.com/zincsearch/zincsearch)
 
-## Requirements (local development)
+## Requirements
 
-The application is configured to run locally using Docker via [Docker Compose](https://docs.docker.com/compose/compose-file/). It's recommended to use Docker Engine, although you may use Docker Desktop.
+### Local development
+
+The project uses [asdf](https://asdf-vm.com/) to manage the required [tools](./.tool-versions). If you have `asdf` installed, you can install them with:
+
+```sh
+asdf install
+```
+
+If you prefer using your own tooling, you need to install:
+
+- [Go](https://golang.org/)
+- [Node.js](https://nodejs.org/) 
+
+### Local deployment
+
+The application is configured to run locally using Docker via [docker-compose.yml](https://docs.docker.com/compose/compose-file/). It's recommended to use Docker Engine in a Linux environment, although you may use Docker Desktop.
 
 - [Docker Engine](https://docs.docker.com/engine/install/)
 - [Docker Desktop](https://docs.docker.com/get-docker/)
@@ -39,14 +54,13 @@ git clone https://github.com/amoralesc/email-indexer.git
 cd email-indexer
 ```
 
-Copy the `*.env.example` files into their respective `*.env` files and update the values as needed (see [Configuration](#configuration)):
+Copy the `*.env.example` file into a `*.env` file and update the values as needed (see [Configuration](#configuration)):
 
 ```sh
 cp .env.example .env
-cp .indexer.env.example .indexer.env
 ```
 
-Get the Enron emails database (or any other emails, just place them in the `emails` directory)
+Get the Enron emails database (or any other emails database, just place them in a `emails` directory at the root of the project):
 
 ```sh
 # you may need to: chmod +x get-enron-emails.sh
@@ -125,9 +139,9 @@ The `SLEEP_TIME_AFTER_INDEXING` variable is useful for debugging the `indexer` c
 
 #### Running the profiling tool
 
-The profiling tool requires `go` to be installed. Refer to the [Go installation instructions](https://go.dev/doc/install) for more information.
+The profiling tool requires `go` to be installed.
 
-For example, if the `INDEXER_ENABLE_PROFILING` is set to `true` and its exposed port is set to `6060`, the CPU can be profiled for 60 seconds with:
+For example, if the `INDEXER_ENABLE_PROFILING` is set to `true` and its exposed port is set to `6060`, the CPU usage can be profiled for 60 seconds with:
 
 ```sh
 go tool pprof http://localhost:6060/debug/pprof/profile?seconds=60
@@ -136,7 +150,7 @@ go tool pprof http://localhost:6060/debug/pprof/profile?seconds=60
 which will activate a pprof interactive shell after 60 seconds. We then can produce a PNG graph of the CPU profile with:
 
 ```sh
-(pprof) png
+(pprof) png > cpu_profile.png
 ```
 
 or a text report with:
